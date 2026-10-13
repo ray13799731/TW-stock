@@ -1,4 +1,5 @@
 import json
+import random
 import os
 import requests
 import pandas as pd
@@ -70,8 +71,12 @@ def main():
     for code, item in quotes.items():
         yesterday_vol = item['yesterdayVol']
         # 模擬 20 日均量與籌碼狀態計算
-        ma20_vol = max(100, int(yesterday_vol * 0.85))
-        vol_ratio = round(yesterday_vol / ma20_vol, 2) if ma20_vol > 0 else 1.0
+        if random.random() < 0.15:
+            vol_ratio = round(random.uniform(1.5, 3.2), 2)
+            ma20_vol = max(500, int(yesterday_vol / vol_ratio))
+        else:
+            vol_ratio = round(random.uniform(0.6, 1.3), 2)
+            ma20_vol = max(500, int(yesterday_vol / vol_ratio))
 
         output.append({
             "code": item['code'],
