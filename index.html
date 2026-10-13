@@ -6,15 +6,8 @@
   <title>台股全市場量價與籌碼智慧篩選系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    /* 自訂滾動條 */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
 
   <!-- 頂部導覽列 -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-6 py-4">
@@ -32,7 +25,6 @@
         </div>
       </div>
 
-      <!-- 狀態指標與動作 -->
       <div class="flex items-center gap-3">
         <div id="data-status" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
           <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -51,31 +43,25 @@
     <!-- 核心條件開關儀表板 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- 策略 A：主力投信籌碼鎖碼組 -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col justify-between space-y-3">
-        <div class="flex items-start justify-between">
-          <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">核心策略一</span>
-            <h3 class="font-bold text-white text-base mt-0.5">主力籌碼深度鎖碼</h3>
-            <p class="text-xs text-slate-400 mt-1">投信連買 $\ge$ 5日、千張大戶連增、散戶連退、家數差為負</p>
-          </div>
-          <i class="fa-solid fa-lock text-indigo-400/40 text-xl"></i>
+      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">條件一</span>
+          <h3 class="font-bold text-white text-base mt-0.5">主力籌碼深度鎖碼</h3>
+          <p class="text-xs text-slate-400 mt-1">投信連買 &ge; 5日、大戶增、散戶退、家數差為負</p>
         </div>
         <button id="btn-filter-chips" onclick="toggleFilter('chips')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-600/20">
+                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500">
           <i class="fa-solid fa-check"></i>
           籌碼集中鎖定 (已啟用)
         </button>
       </div>
 
-      <!-- 策略 B：量能突破（新增需求） -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col justify-between space-y-3">
-        <div class="flex items-start justify-between">
-          <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">核心策略二</span>
-            <h3 class="font-bold text-white text-base mt-0.5">量能爆發增幅</h3>
-            <p class="text-xs text-slate-400 mt-1">昨日成交量 $\ge$ 20日移動平均量 (MA20) 1.5 倍以上</p>
-          </div>
-          <i class="fa-solid fa-bolt-lightning text-amber-400/40 text-xl"></i>
+      <!-- 策略 B：量能突破 -->
+      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">條件二</span>
+          <h3 class="font-bold text-white text-base mt-0.5">昨日量能爆發</h3>
+          <p class="text-xs text-slate-400 mt-1">昨日成交量 &ge; 20日均量 (MA20) 1.5 倍以上</p>
         </div>
         <button id="btn-filter-vol" onclick="toggleFilter('vol')" 
                 class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700">
@@ -84,418 +70,246 @@
         </button>
       </div>
 
-      <!-- 防陷阱濾網：外資倒貨 & 避險飆高 -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col justify-between space-y-3">
-        <div class="flex items-start justify-between">
-          <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">風控避坑</span>
-            <h3 class="font-bold text-white text-base mt-0.5">排除法人陷阱標的</h3>
-            <p class="text-xs text-slate-400 mt-1">剔除外資大賣壓盤、權值套利、自營權證避險暴增</p>
-          </div>
-          <i class="fa-solid fa-shield-halved text-rose-400/40 text-xl"></i>
+      <!-- 防陷阱濾網 -->
+      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">風控避坑</span>
+          <h3 class="font-bold text-white text-base mt-0.5">排除法人陷阱標的</h3>
+          <p class="text-xs text-slate-400 mt-1">排除外資大賣壓盤、權值套利、自營避險飆高</p>
         </div>
         <button id="btn-filter-traps" onclick="toggleFilter('traps')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-600/20">
-          <i class="fa-solid fa-shield-check"></i>
-          自動防踩雷 (已啟用)
+                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700">
+          <i class="fa-solid fa-power-off"></i>
+          防踩雷濾網 (未啟用)
         </button>
       </div>
 
-      <!-- 即時統計與快速搜尋 -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-sm flex flex-col justify-between space-y-3">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">即時篩選統計</span>
-          <div class="flex items-baseline gap-2 mt-1">
-            <span id="stat-matches" class="text-3xl font-extrabold text-emerald-400 font-mono">0</span>
-            <span class="text-xs text-slate-400">/ <span id="stat-total">0</span> 檔</span>
-          </div>
+      <!-- 強化版搜尋欄位與統計 -->
+      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">個股直接查詢</span>
+          <button onclick="resetAllFilters()" class="text-[11px] text-indigo-400 hover:underline">
+            <i class="fa-solid fa-arrows-rotate mr-1"></i>重設所有條件
+          </button>
         </div>
-        <div class="relative">
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
-          <input type="text" id="search-input" oninput="handleSearch()" placeholder="搜尋股票代號或名稱..." 
-                 class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+        <div class="flex items-center gap-1.5">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+            <input type="text" id="search-input" onkeydown="if(event.key==='Enter') executeSearch()" placeholder="輸入代號(如2330)或名稱..." 
+                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+          </div>
+          <button onclick="executeSearch()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-medium transition">
+            搜尋
+          </button>
+        </div>
+        <div class="text-[11px] text-slate-400 flex justify-between">
+          <span>目前顯示：<b id="stat-matches" class="text-emerald-400 text-sm">0</b> 檔</span>
+          <span>全市場庫存：<b id="stat-total" class="text-slate-300">0</b> 檔</span>
         </div>
       </div>
     </div>
 
-    <!-- 表格篩選與排序說明 -->
+    <!-- 表格區塊 -->
     <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-      <div class="p-4 border-b border-slate-800 flex flex-wrap justify-between items-center gap-3">
-        <div class="flex items-center gap-2 text-xs text-slate-400">
-          <span>點選欄位標題可快速排序</span>
-          <span class="text-slate-600">•</span>
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>籌碼極度集中</span>
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-400"></span>量能突破標的</span>
-        </div>
-        <div class="text-xs text-slate-400 flex items-center gap-2">
-          <span>每頁顯示</span>
-          <select id="page-size-select" onchange="changePageSize(this.value)" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 text-xs">
-            <option value="20">20 筆</option>
-            <option value="50" selected>50 筆</option>
-            <option value="100">100 筆</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- 資料清單表格 -->
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950/70 text-slate-400 uppercase tracking-wider border-b border-slate-800 select-none">
             <tr>
-              <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">
-                股票 <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('price')">
-                收盤價 <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">
-                量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">
-                昨日成交量 (張) <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('trustStreak')">
-                投信連買 (日) <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('bigHolderStreak')">
-                千張大戶連增 <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('retailStreak')">
-                散戶連減 (<50張) <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('shareholderDiff')">
-                股東總人數每週變化 <i class="fa-solid fa-sort ml-1"></i>
-              </th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('brokerDiff')">
-                買賣家數差 <i class="fa-solid fa-sort ml-1"></i>
-              </th>
+              <th class="py-3 px-4">股票</th>
+              <th class="py-3 px-3">收盤價</th>
+              <th class="py-3 px-3">量比 (昨日/MA20)</th>
+              <th class="py-3 px-3">昨日成交量 (張)</th>
+              <th class="py-3 px-3">投信連買</th>
+              <th class="py-3 px-3">千張大戶連增</th>
+              <th class="py-3 px-3">散戶連減 (<50張)</th>
+              <th class="py-3 px-3">股東人數變化</th>
+              <th class="py-3 px-3">買賣家數差</th>
               <th class="py-3 px-3 text-center">風控狀態</th>
             </tr>
           </thead>
           <tbody id="table-body" class="divide-y divide-slate-800/60 font-mono">
-            <!-- 動態資料列 -->
+            <!-- 資料列 -->
           </tbody>
         </table>
       </div>
 
-      <!-- 分頁控制列 -->
-      <div class="p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
-        <div id="page-info" class="text-slate-400">
-          顯示第 1 至 50 筆
-        </div>
+      <!-- 分頁 -->
+      <div class="p-4 border-t border-slate-800 flex items-center justify-between text-xs">
+        <div id="page-info" class="text-slate-400">顯示中</div>
         <div class="flex items-center gap-2">
-          <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
-            <i class="fa-solid fa-angle-left"></i> 上一頁
-          </button>
+          <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40">上一頁</button>
           <span id="current-page-num" class="px-2 font-bold text-white">1</span>
-          <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed">
-            下一頁 <i class="fa-solid fa-angle-right"></i>
-          </button>
+          <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40">下一頁</button>
         </div>
       </div>
     </div>
   </main>
 
   <script>
-    // 全域狀態管理
     let rawMarketData = [];
     let filteredData = [];
     let currentPage = 1;
     let pageSize = 50;
-    let currentSort = { key: 'volumeRatio', asc: false };
-    let searchQuery = '';
 
-    // 篩選器開關狀態
     const filters = {
-      chips: true,     // 投信買超 + 大戶增 + 散戶減 + 負家數差
-      vol: false,      // 昨日成交量 >= MA20 1.5倍
-      traps: true      // 剔除外資壓盤、單日大買大型權值套利、自營避險飆高
+      chips: false, // 預設關閉，讓使用者先看到完整列表
+      vol: false,
+      traps: false
     };
 
-    // 初始化載入
     window.addEventListener('DOMContentLoaded', async () => {
       await fetchMarketData();
     });
 
-    // 載入資料（優先讀取本地/CDN靜態 JSON，若無則生成 1,800 檔完整市場模擬測試池）
     async function fetchMarketData() {
       const statusEl = document.getElementById('data-status');
       try {
         const response = await fetch('./market_stocks.json');
         if (!response.ok) throw new Error("JSON not found");
         rawMarketData = await response.json();
-        updateStatusBadge(true, `已載入即時全市場資料 (${rawMarketData.length} 檔)`);
+        statusEl.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300";
+        statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>已連線 (${rawMarketData.length} 檔)</span>`;
       } catch (err) {
-        // 自動生成全台股 1,850 檔上市櫃股票測試資料集
-        rawMarketData = generateTaiwanMarketFullDataset();
-        updateStatusBadge(true, `已就緒（展示全台股 1,850 檔上市櫃模型）`);
+        rawMarketData = generateMockData();
+        statusEl.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-950/60 border border-amber-800 text-xs text-amber-300";
+        statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span><span>展示模型 (${rawMarketData.length} 檔)</span>`;
       }
 
       document.getElementById('stat-total').innerText = rawMarketData.length;
       executeFiltering();
     }
 
-    function updateStatusBadge(success, text) {
-      const el = document.getElementById('data-status');
-      if (success) {
-        el.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300";
-        el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>${text}</span>`;
-      }
+    // 執行搜尋
+    function executeSearch() {
+      executeFiltering();
     }
 
-    // 核心多條件比對引擎
+    // 核心篩選引擎
     function executeFiltering() {
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+
       filteredData = rawMarketData.filter(stock => {
-        // 關鍵字搜尋過濾
-        if (searchQuery) {
-          const matchCode = stock.code.toLowerCase().includes(searchQuery.toLowerCase());
-          const matchName = stock.name.toLowerCase().includes(searchQuery.toLowerCase());
+        // 如果有輸入搜尋文字
+        if (query) {
+          const matchCode = stock.code.toLowerCase().includes(query);
+          const matchName = stock.name.toLowerCase().includes(query);
           if (!matchCode && !matchName) return false;
+          
+          // 如果使用者正在精準搜尋特定股票（例如輸入4碼代號），允許略過上方的條件開關限制
+          if (query.length >= 4 && matchCode) {
+            return true;
+          }
         }
 
-        // 條件一：主力籌碼高度鎖碼
+        // 條件一：籌碼鎖定
         if (filters.chips) {
-          const passTrust = stock.trustStreak >= 5;                       // 投信連買 >= 5 天
-          const passBigHolder = stock.bigHolderStreak >= 3;               // 千張大戶連增 >= 3 週
-          const passRetail = stock.retailStreak >= 3;                      // 散戶持股連退 >= 3 週
-          const passShareholders = stock.shareholderDiff < 0;             // 股東總人數下降
-          const passBrokerDiff = stock.brokerDiff < 0;                    // 買賣券商家數差為負值 (< 0)
-
-          if (!(passTrust && passBigHolder && passRetail && passShareholders && passBrokerDiff)) {
+          if (stock.trustStreak < 5 || stock.bigHolderStreak < 3 || stock.retailStreak < 3 || stock.brokerDiff >= 0) {
             return false;
           }
         }
 
-        // 條件二：成交量 >= 20 日均量的 1.5 倍
-        if (filters.vol) {
-          if (stock.volumeRatio < 1.5) return false;
+        // 條件二：量增 1.5 倍
+        if (filters.vol && stock.volumeRatio < 1.5) {
+          return false;
         }
 
-        // 條件三：排除陷阱標的
-        if (filters.traps) {
-          if (stock.trapForeignSell || stock.trapLargeIndexArbitrage || stock.trapDealerHedgeSpike) {
-            return false;
-          }
+        // 條件三：排除陷阱
+        if (filters.traps && (stock.trapForeignSell || stock.trapLargeIndexArbitrage || stock.trapDealerHedgeSpike)) {
+          return false;
         }
 
         return true;
       });
 
-      // 排序
-      sortDataset();
-
-      // 更新統計與繪製
       document.getElementById('stat-matches').innerText = filteredData.length;
       currentPage = 1;
       renderTable();
     }
 
-    // 切換按鈕狀態
     function toggleFilter(type) {
       filters[type] = !filters[type];
-
-      const btnChips = document.getElementById('btn-filter-chips');
-      const btnVol = document.getElementById('btn-filter-vol');
-      const btnTraps = document.getElementById('btn-filter-traps');
-
-      // 更新按鈕樣式
-      if (type === 'chips') {
-        btnChips.className = filters.chips 
-          ? "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-600/20"
-          : "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
-        btnChips.innerHTML = filters.chips ? `<i class="fa-solid fa-check"></i> 籌碼集中鎖定 (已啟用)` : `<i class="fa-solid fa-power-off"></i> 籌碼集中鎖定 (未啟用)`;
-      }
-
-      if (type === 'vol') {
-        btnVol.className = filters.vol
-          ? "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-amber-600 hover:bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-600/20"
-          : "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
-        btnVol.innerHTML = filters.vol ? `<i class="fa-solid fa-bolt"></i> 昨日量 &ge; MA20 1.5倍 (已啟用)` : `<i class="fa-solid fa-power-off"></i> 量增 1.5 倍以上 (未啟用)`;
-      }
-
-      if (type === 'traps') {
-        btnTraps.className = filters.traps
-          ? "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-600/20"
-          : "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
-        btnTraps.innerHTML = filters.traps ? `<i class="fa-solid fa-shield-check"></i> 自動防踩雷 (已啟用)` : `<i class="fa-solid fa-triangle-exclamation"></i> 防踩雷濾網 (已關閉)`;
-      }
-
-      executeFiltering();
-    }
-
-    function handleSearch() {
-      searchQuery = document.getElementById('search-input').value.trim();
-      executeFiltering();
-    }
-
-    function sortBy(key) {
-      if (currentSort.key === key) {
-        currentSort.asc = !currentSort.asc;
+      const btn = document.getElementById(`btn-filter-${type}`);
+      if (filters[type]) {
+        btn.className = "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500";
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> 啟用中`;
       } else {
-        currentSort.key = key;
-        currentSort.asc = false;
+        btn.className = "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
+        btn.innerHTML = `<i class="fa-solid fa-power-off"></i> 未啟用`;
       }
-      sortDataset();
-      renderTable();
+      executeFiltering();
     }
 
-    function sortDataset() {
-      filteredData.sort((a, b) => {
-        let valA = a[currentSort.key];
-        let valB = b[currentSort.key];
-        if (typeof valA === 'string') {
-          return currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
-        }
-        return currentSort.asc ? valA - valB : valB - valA;
+    function resetAllFilters() {
+      document.getElementById('search-input').value = '';
+      filters.chips = false;
+      filters.vol = false;
+      filters.traps = false;
+      ['chips', 'vol', 'traps'].forEach(type => {
+        const btn = document.getElementById(`btn-filter-${type}`);
+        btn.className = "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
+        btn.innerHTML = `<i class="fa-solid fa-power-off"></i> 未啟用`;
       });
+      executeFiltering();
     }
 
-    // 表格渲染與分頁
     function renderTable() {
       const tbody = document.getElementById('table-body');
       const startIdx = (currentPage - 1) * pageSize;
-      const endIdx = startIdx + pageSize;
-      const pageData = filteredData.slice(startIdx, endIdx);
+      const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="10" class="py-16 text-center text-slate-500">
-              <i class="fa-solid fa-filter-circle-xmark text-3xl mb-2 block text-slate-600"></i>
-              查無符合條件的個股。可嘗試暫時關閉「量增 1.5 倍」或放寬部分條件。
-            </td>
-          </tr>
-        `;
-        document.getElementById('page-info').innerText = "0 筆資料";
+        tbody.innerHTML = `<tr><td colspan="10" class="py-12 text-center text-slate-500">查無此股票，請點擊「重設所有條件」或檢查代號是否正確。</td></tr>`;
+        document.getElementById('page-info').innerText = "0 筆";
         return;
       }
 
-      tbody.innerHTML = pageData.map(item => {
-        const isVolSpike = item.volumeRatio >= 1.5;
-        const volRatioBadge = isVolSpike
-          ? `<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold">${item.volumeRatio.toFixed(2)}x</span>`
-          : `<span class="text-slate-400">${item.volumeRatio.toFixed(2)}x</span>`;
+      tbody.innerHTML = pageData.map(item => `
+        <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/40">
+          <td class="py-3 px-4 font-sans font-bold text-white">${item.code} <span class="text-slate-400 font-normal ml-1">${item.name}</span></td>
+          <td class="py-3 px-3 text-slate-100">${item.price.toFixed(1)}</td>
+          <td class="py-3 px-3 ${item.volumeRatio >= 1.5 ? 'text-amber-400 font-bold' : 'text-slate-400'}">${item.volumeRatio.toFixed(2)}x</td>
+          <td class="py-3 px-3 text-slate-300">${item.yesterdayVol.toLocaleString()}</td>
+          <td class="py-3 px-3 text-rose-400 font-bold">+${item.trustStreak} 日</td>
+          <td class="py-3 px-3 text-indigo-300">${item.bigHolderStreak} 週</td>
+          <td class="py-3 px-3 text-cyan-300">${item.retailStreak} 週</td>
+          <td class="py-3 px-3 ${item.shareholderDiff < 0 ? 'text-emerald-400' : 'text-slate-400'}">${item.shareholderDiff} 人</td>
+          <td class="py-3 px-3 ${item.brokerDiff < 0 ? 'text-emerald-400 font-bold' : 'text-slate-400'}">${item.brokerDiff} 家</td>
+          <td class="py-3 px-3 text-center text-xs text-slate-400">${item.trapForeignSell ? '<span class="text-rose-400">外資壓盤</span>' : '正常'}</td>
+        </tr>
+      `).join('');
 
-        let trapBadges = '<span class="text-emerald-400 text-xs">安全正常</span>';
-        if (item.trapForeignSell) trapBadges = '<span class="text-rose-400 text-xs">外資壓盤</span>';
-        else if (item.trapLargeIndexArbitrage) trapBadges = '<span class="text-orange-400 text-xs">權值套利</span>';
-        else if (item.trapDealerHedgeSpike) trapBadges = '<span class="text-pink-400 text-xs">避險飆高</span>';
-
-        return `
-          <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/40">
-            <td class="py-3 px-4 font-sans">
-              <div class="font-bold text-white flex items-center gap-1.5">
-                <span>${item.code}</span>
-                <span class="text-slate-300 text-xs font-normal">${item.name}</span>
-                <span class="text-[10px] px-1 py-0.2 rounded ${item.market === '上市' ? 'bg-blue-950 text-blue-300' : 'bg-purple-950 text-purple-300'}">${item.market}</span>
-              </div>
-            </td>
-            <td class="py-3 px-3 font-semibold text-slate-100">${item.price.toFixed(1)}</td>
-            <td class="py-3 px-3">${volRatioBadge}</td>
-            <td class="py-3 px-3 text-slate-300">${item.yesterdayVol.toLocaleString()}</td>
-            <td class="py-3 px-3 text-rose-400 font-bold">+${item.trustStreak} 日</td>
-            <td class="py-3 px-3 text-indigo-300">${item.bigHolderStreak} 週連增</td>
-            <td class="py-3 px-3 text-cyan-300">${item.retailStreak} 週連減</td>
-            <td class="py-3 px-3 ${item.shareholderDiff < 0 ? 'text-emerald-400 font-semibold' : 'text-slate-400'}">
-              ${item.shareholderDiff} 人
-            </td>
-            <td class="py-3 px-3 ${item.brokerDiff < 0 ? 'text-emerald-400 font-bold' : 'text-slate-400'}">
-              ${item.brokerDiff} 家
-            </td>
-            <td class="py-3 px-3 text-center">${trapBadges}</td>
-          </tr>
-        `;
-      }).join('');
-
-      // 更新分頁資訊
       const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
-      document.getElementById('page-info').innerText = `顯示第 ${startIdx + 1} 至 ${Math.min(endIdx, filteredData.length)} 筆，共 ${filteredData.length} 筆`;
+      document.getElementById('page-info').innerText = `顯示第 ${startIdx + 1} 至 ${Math.min(startIdx + pageSize, filteredData.length)} 筆，共 ${filteredData.length} 筆`;
       document.getElementById('current-page-num').innerText = `${currentPage} / ${totalPages}`;
       document.getElementById('btn-prev-page').disabled = currentPage <= 1;
       document.getElementById('btn-next-page').disabled = currentPage >= totalPages;
     }
 
     function changePage(delta) {
-      const totalPages = Math.ceil(filteredData.length / pageSize) || 1;
-      const target = currentPage + delta;
-      if (target >= 1 && target <= totalPages) {
-        currentPage = target;
-        renderTable();
-      }
-    }
-
-    function changePageSize(val) {
-      pageSize = parseInt(val, 10);
-      currentPage = 1;
+      currentPage += delta;
       renderTable();
     }
 
-    // 匯出 CSV 檔
-    function exportCSV() {
-      if (filteredData.length === 0) {
-        alert("目前沒有符合的資料可供匯出！");
-        return;
-      }
-      let csv = "股票代號,股票名稱,市場,收盤價,昨日成交量,20日均量,量比,投信連買天數,千張大戶連增週數,散戶連退週數,股東人數變化,買賣券商家數差\n";
-      filteredData.forEach(s => {
-        csv += `${s.code},${s.name},${s.market},${s.price},${s.yesterdayVol},${s.ma20Vol},${s.volumeRatio.toFixed(2)},${s.trustStreak},${s.bigHolderStreak},${s.retailStreak},${s.shareholderDiff},${s.brokerDiff}\n`;
-      });
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `台股籌碼與量能精選_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    // 模擬全台股 1,850 檔上市上櫃資料池模型生成函式
-    function generateTaiwanMarketFullDataset() {
+    function generateMockData() {
       const list = [];
-      const prefixes = ["23", "24", "30", "32", "35", "52", "62", "64", "65", "80", "89"];
-      const names = ["智", "達", "聯", "華", "光", "碩", "泰", "元", "宏", "通", "晶", "聖", "訊", "能", "科", "電"];
-
-      for (let i = 1; i <= 1850; i++) {
-        const prefix = prefixes[i % prefixes.length];
-        const numPart = (10 + (i % 90)).toString().padStart(2, '0');
-        const code = `${prefix}${numPart}`;
-        const name = `${names[i % names.length]}${names[(i * 3) % names.length]}科`;
-        
-        const ma20 = Math.floor(Math.random() * 9000) + 300;
-        // 控制約 15% 標的發生 1.5 倍量能突破
-        const isVolExplosion = Math.random() < 0.18;
-        const volumeRatio = isVolExplosion ? (1.5 + Math.random() * 2.5) : (0.4 + Math.random() * 1.05);
-        const yesterdayVol = Math.floor(ma20 * volumeRatio);
-        
-        // 籌碼集中度分佈生成
-        const trustStreak = Math.random() < 0.08 ? Math.floor(5 + Math.random() * 12) : Math.floor(Math.random() * 4);
-        const bigHolderStreak = Math.random() < 0.15 ? Math.floor(3 + Math.random() * 5) : Math.floor(Math.random() * 3);
-        const retailStreak = bigHolderStreak >= 3 ? Math.floor(3 + Math.random() * 4) : Math.floor(Math.random() * 3);
-        const shareholderDiff = retailStreak >= 3 ? -Math.floor(100 + Math.random() * 1200) : Math.floor(Math.random() * 1000) - 400;
-        const brokerDiff = bigHolderStreak >= 3 ? -Math.floor(20 + Math.random() * 90) : Math.floor(Math.random() * 100) - 45;
-
-        // 風險標記生成
-        const trapForeignSell = Math.random() < 0.05;
-        const trapLargeIndexArbitrage = (code === '2330' || code === '2317') || Math.random() < 0.02;
-        const trapDealerHedgeSpike = Math.random() < 0.04;
-
+      for (let i = 1; i <= 1000; i++) {
+        const code = (2000 + i).toString();
         list.push({
-          code,
-          name,
-          market: i % 2 === 0 ? '上市' : '上櫃',
-          price: parseFloat((25 + Math.random() * 650).toFixed(1)),
-          yesterdayVol,
-          ma20Vol: ma20,
-          volumeRatio,
-          trustStreak,
-          bigHolderStreak,
-          retailStreak,
-          shareholderDiff,
-          brokerDiff,
-          trapForeignSell,
-          trapLargeIndexArbitrage,
-          trapDealerHedgeSpike
+          code: code,
+          name: `台股標的-${code}`,
+          market: '上市',
+          price: 50 + (i % 200),
+          yesterdayVol: 1500,
+          ma20Vol: 1000,
+          volumeRatio: 1.5,
+          trustStreak: 6,
+          bigHolderStreak: 3,
+          retailStreak: 3,
+          shareholderDiff: -120,
+          brokerDiff: -25,
+          trapForeignSell: false,
+          trapLargeIndexArbitrage: false,
+          trapDealerHedgeSpike: false
         });
       }
       return list;
