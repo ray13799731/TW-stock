@@ -202,17 +202,27 @@
         }
 
         // 條件一：籌碼鎖定
-        if (filters.chips) {
-          if (stock.trustStreak < 5 || stock.bigHolderStreak < 3 || stock.retailStreak < 3 || stock.brokerDiff >= 0) {
-            return false;
+       if (filters.chips) {
+        const passTrust = stock.trustStreak >= 3;          // 投信連買改為 >= 3 日
+        const passBigHolder = stock.bigHolderStreak >= 2;  // 大戶連增改為 >= 2 週
+        const passBrokerDiff = stock.brokerDiff < 0;       // 券商家數差為負 (少數分點收購)
+  
+  // 只要符合以上三項主力行為即入選（不硬性要求散戶連續 3 週全減）
+        if (!(passTrust && passBigHolder && passBrokerDiff)) {
+          return false;
           }
         }
 
         // 條件二：量增 1.5 倍
-        if (filters.vol && stock.volumeRatio < 1.5) {
-          return false;
+        if (filters.vol) {
+  // 將絕對 1.5 倍放寬至 1.3 倍，並確保有基本流動性（例如 >= 500 張）
+          const passRatio = stock.volumeRatio >= 1.3;
+          const passLiquidity = stock.yesterdayVol >= 500;
+  
+          if (!passRatio || !passLiquidity) {
+            return false;
+          }
         }
-
         // 條件三：排除陷阱
         if (filters.traps && (stock.trapForeignSell || stock.trapLargeIndexArbitrage || stock.trapDealerHedgeSpike)) {
           return false;
