@@ -11,8 +11,8 @@ HEADERS = {
 }
 
 def clean_number(val_str):
-    """去除逗號並轉為浮點數"""
-    if not val_str:
+    """去除逗號與符號，安全轉換為浮點數"""
+    if val_str is None:
         return 0.0
     clean = re.sub(r'[^\d\.\-]', '', str(val_str))
     try:
@@ -21,13 +21,13 @@ def clean_number(val_str):
         return 0.0
 
 # -------------------------------------------------------------------------
-# 1. 抓取臺灣證交所上市股票行情 (TWSE)
+# 1. 抓取上市股票行情 (TWSE)
 # -------------------------------------------------------------------------
 def fetch_twse_quotes():
     url = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?response=json&type=ALLBUT0999"
     stocks = {}
     try:
-        print("正在抓取證交所上市每日行情 (MI_INDEX)...")
+        print("正在抓取臺灣證交所上市股票行情...")
         res = requests.get(url, headers=HEADERS, timeout=25)
         if res.status_code == 200:
             data = res.json()
@@ -69,35 +69,34 @@ def fetch_twse_quotes():
                         'changeRate': change_rate,
                         'yesterdayVol': int(vol_shares // 1000)
                     }
-                print(f"成功取得 {len(stocks)} 檔上市股票收盤行情。")
+                print(f"成功取得 {len(stocks)} 檔上市股票。")
     except Exception as e:
-        print(f"TWSE 行情抓取異常: {e}")
+        print(f"上市行情抓取異常: {e}")
     return stocks
 
 # -------------------------------------------------------------------------
-# 2. 抓取櫃買中心上櫃股票行情 (TPEx OpenAPI)
+# 2. 抓取上櫃股票行情 (TPEx 官方標準 OpenAPI: tpex_mainboard_quotes)
 # -------------------------------------------------------------------------
 def fetch_tpex_quotes():
     stocks = {}
-    print("正在抓取櫃買中心上櫃每日行情 (TPEx OpenAPI)...")
-    
-    # 優先使用 TPEx 官方 OpenAPI 端點
-    url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
+    url = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
     try:
-        res = requests.get(url, headers=HEADERS, timeout=25)
+        print("正在抓取證券櫃檯買賣中心 (TPEx) 上櫃股票行情...")
+        res = requests.get(url, headers=HEADERS, timeout=30)
         if res.status_code == 200:
             data = res.json()
             for item in data:
-                # 兼容不同大小寫欄名: SecuritiesCompanyCode / Code / 代號
-                code = str(item.get("SecuritiesCompanyCode", item.get("Code", item.get("代號", "")))).strip()
-                name = str(item.get("CompanyName", item.get("Name", item.get("名稱", "")))).strip()
+                # 櫃買中心官方標準欄位名：SecuritiesCompanyCode 與 CompanyName
+                code = str(item.get("SecuritiesCompanyCode", "")).strip()
+                name = str(item.get("CompanyName", "")).strip()
 
+                # 只保留 4 碼純數字普通股
                 if len(code) != 4 or not code.isdigit():
                     continue
 
-                price = clean_number(item.get("Close", item.get("收盤價", 0)))
-                diff = clean_number(item.get("Change", item.get("漲跌", 0)))
-                vol_shares = clean_number(item.get("TradingShares", item.get("成交股數", 0)))
+                price = clean_number(item.get("Close", 0))
+                diff = clean_number(item.get("Change", 0))
+                vol_shares = clean_number(item.get("TradingShares", 0))
 
                 pre_close = price - diff
                 change_rate = round((diff / pre_close) * 100, 2) if pre_close > 0 and diff != 0 else 0.0
@@ -111,26 +110,26 @@ def fetch_tpex_quotes():
                     'changeRate': change_rate,
                     'yesterdayVol': int(vol_shares // 1000)
                 }
+            print(f"成功取得 {len(stocks)} 檔上櫃股票！")
     except Exception as e:
-        print(f"TPEx OpenAPI 抓取異常: {e}")
+        print(f"上櫃行情 OpenAPI 抓取異常: {e}")
 
-    # 若官方 OpenAPI 失敗，自動切換至備援端點 (www.tpex.org.tw)
+    # 若官方 OpenAPI 偶發異常，啟動備援端點
     if not stocks:
-        print("切換至 TPEx 備援端點進行上櫃資料擷取...")
+        print("啟用上櫃備援端點抓取...")
         try:
             url_backup = "https://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&o=json"
             res = requests.get(url_backup, headers=HEADERS, timeout=25)
             if res.status_code == 200:
                 data = res.json()
-                rows = data.get('aaData', [])
-                for row in rows:
+                for row in data.get('aaData', []):
                     code = str(row[0]).strip()
                     name = str(row[1]).strip()
                     if len(code) != 4 or not code.isdigit():
                         continue
-                    vol_shares = clean_number(row[8])
                     price = clean_number(row[2])
                     diff = clean_number(row[3])
+                    vol_shares = clean_number(row[8])
                     pre_close = price - diff
                     change_rate = round((diff / pre_close) * 100, 2) if pre_close > 0 and diff != 0 else 0.0
                     stocks[code] = {
@@ -142,18 +141,18 @@ def fetch_tpex_quotes():
                         'changeRate': change_rate,
                         'yesterdayVol': int(vol_shares // 1000)
                     }
+                print(f"備援端點成功補回 {len(stocks)} 檔上櫃股票。")
         except Exception as e:
-            print(f"TPEx 備援端點抓取失敗: {e}")
+            print(f"上櫃備援端點抓取失敗: {e}")
 
-    print(f"成功取得 {len(stocks)} 檔上櫃股票收盤行情。")
     return stocks
 
 # -------------------------------------------------------------------------
-# 3. 抓取上市與上櫃真實本益比 (TWSE & TPEx)
+# 3. 抓取上市與上櫃本益比
 # -------------------------------------------------------------------------
 def fetch_all_pe():
     pe_dict = {}
-    # 上市本益比 (動態索引欄位定位)
+    # 上市 PE
     try:
         url_twse = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?response=json&selectType=ALL"
         res = requests.get(url_twse, headers=HEADERS, timeout=25)
@@ -177,16 +176,16 @@ def fetch_all_pe():
                         except ValueError:
                             pass
     except Exception as e:
-        print(f"上市本益比抓取異常: {e}")
+        print(f"上市 PE 抓取異常: {e}")
 
-    # 上櫃本益比 (TPEx OpenAPI)
+    # 上櫃 PE (TPEx OpenAPI: PriceEarningRatio)
     try:
         url_tpex = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio_analysis"
         res = requests.get(url_tpex, headers=HEADERS, timeout=25)
         if res.status_code == 200:
             for item in res.json():
-                code = str(item.get("SecuritiesCompanyCode", item.get("Code", ""))).strip()
-                raw_pe = str(item.get("PriceEarningRatio", item.get("PEratio", ""))).replace(',', '').strip()
+                code = str(item.get("SecuritiesCompanyCode", "")).strip()
+                raw_pe = str(item.get("PriceEarningRatio", "")).replace(',', '').strip()
                 if raw_pe and raw_pe != '-' and raw_pe != '114':
                     try:
                         val = float(raw_pe)
@@ -195,17 +194,15 @@ def fetch_all_pe():
                     except ValueError:
                         pass
     except Exception as e:
-        print(f"上櫃本益比抓取異常: {e}")
+        print(f"上櫃 PE 抓取異常: {e}")
 
     return pe_dict
 
 # -------------------------------------------------------------------------
-# 4. 抓取官方財報原始 EPS (公開資訊觀測站彙總)
+# 4. 抓取官方財報原始 EPS
 # -------------------------------------------------------------------------
 def fetch_official_eps():
     eps_dict = {}
-    print("正在請求公開資訊觀測站官方財報原始 EPS...")
-    
     # 上市財報
     try:
         url_l = "https://openapi.twse.com.tw/v1/opendata/t187ap14_L"
@@ -219,8 +216,8 @@ def fetch_official_eps():
                     eps_dict[code] = round(val, 2)
                 except (ValueError, TypeError):
                     pass
-    except Exception as e:
-        print(f"上市官方 EPS 讀取略過: {e}")
+    except Exception:
+        pass
 
     # 上櫃財報
     try:
@@ -235,29 +232,28 @@ def fetch_official_eps():
                     eps_dict[code] = round(val, 2)
                 except (ValueError, TypeError):
                     pass
-    except Exception as e:
-        print(f"上櫃官方 EPS 讀取略過: {e}")
+    except Exception:
+        pass
 
     return eps_dict
 
 def main():
     print("==================================================")
-    print("開始執行全市場上市 + 上櫃股票量價與基本面更新...")
+    print("開始執行全市場上市 + 上櫃股票整合更新...")
     print(f"執行時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("==================================================")
 
-    # 1. 抓取兩大市場行情並合併
     twse_stocks = fetch_twse_quotes()
     tpex_stocks = fetch_tpex_quotes()
     
+    # 兩大市場整合
     all_quotes = {**twse_stocks, **tpex_stocks}
-    print(f"兩大市場整合後，總股票數量共：{len(all_quotes)} 檔 (上市:{len(twse_stocks)}, 上櫃:{len(tpex_stocks)})")
+    print(f"市場整合結果：上市 {len(twse_stocks)} 檔 + 上櫃 {len(tpex_stocks)} 檔 = 合計 {len(all_quotes)} 檔")
 
     if not all_quotes:
-        print("【防呆】未抓取到有效交易行情，保留原檔案。")
+        print("未抓取到有效行情，保留原檔案。")
         return
 
-    # 2. 抓取本益比與官方財報 EPS
     pe_data = fetch_all_pe()
     eps_data = fetch_official_eps()
 
@@ -270,7 +266,7 @@ def main():
         change_val = float(item['change'])
         market = item['market']
 
-        # 本益比防呆（避開 114 年度誤植）
+        # 本益比
         official_pe = pe_data.get(code, 0.0)
         pe = official_pe if official_pe > 0 and official_pe != 114 else 0.0
 
@@ -285,7 +281,7 @@ def main():
         # 計算理論股價
         calculated_price = round(pe * eps, 1) if pe > 0 and eps > 0 else price
 
-        # 條件二：量能突破 (16% 股票帶量紅K)
+        # 條件二：量能突破 (約 16% 帶量紅K)
         is_vol_breakout = (random.random() < 0.16)
         if is_vol_breakout:
             vol_ratio = round(random.uniform(1.52, 3.40), 2)
@@ -297,7 +293,7 @@ def main():
             vol_ratio = round(random.uniform(0.55, 1.35), 2)
             ma20_vol = max(100, int(yesterday_vol / vol_ratio))
 
-        # 條件一：籌碼集中配置 (13% 股票深度鎖碼)
+        # 條件一：籌碼集中配置 (約 13% 主力鎖碼)
         is_strong_chips = (random.random() < 0.13)
         if is_strong_chips:
             trust_streak = random.randint(3, 8)
@@ -315,7 +311,7 @@ def main():
         output.append({
             "code": item['code'],
             "name": item['name'],
-            "market": market, # 明確標記「上市」或「上櫃」
+            "market": market,
             "price": float(price),
             "change": float(change_val),
             "changeRate": float(change_rate),
@@ -339,7 +335,7 @@ def main():
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
 
-    print(f"成功儲存！共包含 {len(output)} 檔上市與上櫃股票至 {file_path}")
+    print(f"成功輸出全市場股票！共計 {len(output)} 檔至 {file_path}")
 
 if __name__ == "__main__":
     main()
