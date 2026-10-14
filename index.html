@@ -220,15 +220,27 @@
 
         // 條件一：主力籌碼集中鎖碼
         if (filters.chips) {
-          if (stock.trustStreak < 3 || stock.bigHolderStreak < 2 || stock.brokerDiff >= 0) {
+        // 請將 index.html 裡的條件一替換為這段：
+
+          // 核心條件：籌碼由少數分點集中收購
+          const isBrokerConcentrated = stock.brokerDiff < 0;
+  
+          // 法人或大戶至少有一方積極介入
+          const isInstitutionalOrBigHolder = (stock.trustStreak >= 2) || (stock.bigHolderStreak >= 2);
+
+          if (!isBrokerConcentrated || !isInstitutionalOrBigHolder) {
             return false;
           }
         }
-
+             
         // 條件二：昨日量能爆發且紅K突破
         if (filters.vol) {
-          const isVolumeSpike = stock.volumeRatio >= 1.5;
-          const isPriceUp = (stock.changeRate !== undefined) ? (stock.changeRate > 0) : (stock.change > 0);
+          const volRatio = parseFloat(stock.volumeRatio) || 0;
+          const changeRate = parseFloat(stock.changeRate) || 0;
+          const change = parseFloat(stock.change) || 0;
+          const isVolumeSpike = volRatio >= 1.5;
+          const isPriceUp = (changeRate > 0) || (change > 0);
+
           if (!isVolumeSpike || !isPriceUp) {
             return false;
           }
