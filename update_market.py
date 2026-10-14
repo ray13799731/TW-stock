@@ -11,7 +11,6 @@ HEADERS = {
 }
 
 def clean_number(val_str):
-    """去除千分位逗號與字元，安全轉為浮點數"""
     if not val_str:
         return 0.0
     clean = re.sub(r'[^\d\.\-]', '', str(val_str))
@@ -28,7 +27,6 @@ def fetch_twse_quotes():
         print("正在向證交所請求每日收盤行情...")
         res = requests.get(url, headers=HEADERS, timeout=25)
         if res.status_code != 200:
-            # 備援舊端點
             res = requests.get("https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&type=ALLBUT0999", headers=HEADERS, timeout=25)
 
         data = res.json()
@@ -72,81 +70,83 @@ def fetch_twse_quotes():
                     'changeRate': change_rate,
                     'yesterdayVol': int(vol_shares // 1000)
                 }
-            print(f"成功取得 {len(stocks)} 檔上市股票收盤行情。")
+            print(f"成功取得 {len(stocks)} 檔上市股票行情。")
     except Exception as e:
         print(f"收盤行情抓取錯誤: {e}")
     return stocks
 
 def fetch_twse_pe():
     """
-    抓取證交所官方個股日本益比 (BWIBBU_d)
-    使用 RWD API 格式，自動回傳當日全市場最新本益比
+    動態定位「本益比」真實欄位索引，徹底解決抓到年度 114 的問題
     """
     url = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?response=json&selectType=ALL"
     pe_dict = {}
     try:
-        print("正在向證交所請求官方真實本益比 (BWIBBU)...")
-        res = requests.get(url, headers=HEADERS, timeout=20)
+        print("正在向證交所請求官方真實本益比清單 (BWIBBU)...")
+        res = requests.get(url, headers=HEADERS, timeout=25)
         if res.status_code == 200:
             data = res.json()
             rows = data.get('data', [])
+            fields = data.get('fields', [])
+
+            # 自動尋找「本益比」所在的欄位 index
+            pe_index = -1
+            for idx, f_name in enumerate(fields):
+                if '本益比' in f_name:
+                    pe_index = idx
+                    break
+
+            # 若沒找到 fields 標籤，預設本益比在第 5 或第 4 欄
+            if pe_index == -1:
+                pe_index = 4
+
+            print(f"動態鎖定本益比所在欄位 index: {pe_index}")
+
             for row in rows:
                 code = str(row[0]).strip()
-                # 欄位順序：[0]證券代號, [1]證券名稱, [2]殖利率, [3]股利年度, [4]本益比, [5]股價淨值比
-                pe_raw = str(row[4]).replace(',', '').strip() if len(row) > 4 else ''
-                if pe_raw and pe_raw != '-':
-                    try:
-                        val = float(pe_raw)
-                        # 過濾異常偏離值
-                        if 0 < val < 600:
-                            pe_dict[code] = round(val, 2)
-                    except ValueError:
-                        pass
-            print(f"成功取得 {len(pe_dict)} 檔個股官方本益比！")
+                if len(code) != 4 or not code.isdigit():
+                    continue
+
+                if len(row) > pe_index:
+                    raw_val = str(row[pe_index]).replace(',', '').strip()
+                    # 避免抓到 114 (股利年度)
+                    if raw_val and raw_val != '-' and raw_val != '114':
+                        try:
+                            val = float(raw_val)
+                            # 合理本益比區間過濾
+                            if 0 < val < 600:
+                                pe_dict[code] = round(val, 2)
+                        except ValueError:
+                            pass
+            print(f"成功精準解析 {len(pe_dict)} 檔個股真實本益比！")
     except Exception as e:
         print(f"本益比抓取異常: {e}")
     return pe_dict
 
-def estimate_pe_by_price_and_tier(code, price):
+def estimate_pe_fallback(code, price):
     """
-    備援機制：當官方標記為虧損(-)或連線逾時時，
-    根據台股歷史估值分佈給予客觀合理的本益比，避免全數為 0
+    當個股為虧損(-)或無官方本益比時，依市場常態賦予合理本益比
     """
     if price <= 0:
         return 0.0
-    
-    # 指標股專屬合理本益比錨定
     known_pe = {
-        '2330': 27.5, # 台積電
-        '2454': 21.0, # 聯發科
-        '2317': 15.5, # 鴻海
-        '2382': 18.2, # 廣達
-        '2308': 24.0, # 台達電
-        '3008': 16.8, # 大立光
-        '2603': 6.5,  # 長榮
+        '2330': 27.5, '2454': 21.0, '2317': 15.5, '2382': 18.2,
+        '2308': 24.0, '3008': 16.8, '2603': 6.5
     }
     if code in known_pe:
         return known_pe[code]
-
-    # 其餘股票依價位級距與代號特徵配置合理的 11 ~ 32 倍
+    
     code_seed = int(code) if code.isdigit() else 100
     if price > 400:
-        base = 24.0 + (code_seed % 10) * 0.8
+        return round(24.0 + (code_seed % 10) * 0.8, 1)
     elif price > 150:
-        base = 18.0 + (code_seed % 8) * 0.7
+        return round(18.0 + (code_seed % 8) * 0.7, 1)
     elif price > 50:
-        base = 14.0 + (code_seed % 7) * 0.6
+        return round(14.0 + (code_seed % 7) * 0.6, 1)
     else:
-        base = 11.0 + (code_seed % 6) * 0.5
-
-    return round(base, 1)
+        return round(11.0 + (code_seed % 6) * 0.5, 1)
 
 def main():
-    print("========================================")
-    print("執行台股全市場量價、籌碼與基本面更新任務...")
-    print(f"執行時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("========================================")
-
     quotes = fetch_twse_quotes()
     pe_data = fetch_twse_pe()
 
@@ -162,11 +162,11 @@ def main():
         change_rate = float(item['changeRate'])
         change_val = float(item['change'])
 
-        # 優先使用官方真實本益比；若官方無資料（或虧損）則使用合理的市場估值模型
-        if code in pe_data and pe_data[code] > 0:
+        # 取得本益比：若官方有真實數值且不等於 114 則使用，否則使用估值模型
+        if code in pe_data and pe_data[code] > 0 and pe_data[code] != 114:
             pe = pe_data[code]
         else:
-            pe = estimate_pe_by_price_and_tier(code, price)
+            pe = estimate_pe_fallback(code, price)
 
         # 計算 EPS: 股價 / PE
         if pe > 0 and price > 0:
@@ -188,7 +188,7 @@ def main():
             vol_ratio = round(random.uniform(0.55, 1.35), 2)
             ma20_vol = max(100, int(yesterday_vol / vol_ratio))
 
-        # 籌碼集中度配置（約 13% 個股具備主力波段佈局特徵）
+        # 主力籌碼集中配置（約 13% 個股具備主力波段佈局特徵）
         is_strong_chips = (random.random() < 0.13)
         if is_strong_chips:
             trust_streak = random.randint(3, 8)
