@@ -223,12 +223,12 @@
         // 請將 index.html 裡的條件一替換為這段：
 
           // 核心條件：籌碼由少數分點集中收購
-          const isBrokerConcentrated = stock.brokerDiff < 0;
+          const passTrust = (parseInt(stock.trustStreak) || 0) >= 3;
   
-          // 法人或大戶至少有一方積極介入
-          const isInstitutionalOrBigHolder = (stock.trustStreak >= 2) || (stock.bigHolderStreak >= 2);
+          const passBigHolder = (parseInt(stock.bigHolderStreak) || 0) >= 2;
+          const passBrokerDiff = (parseInt(stock.brokerDiff) || 0) < 0;
 
-          if (!isBrokerConcentrated || !isInstitutionalOrBigHolder) {
+          if (!(passTrust && passBigHolder && passBrokerDiff)) {
             return false;
           }
         }
