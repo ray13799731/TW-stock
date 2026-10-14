@@ -237,9 +237,9 @@
         if (filters.vol) {
           const volRatio = parseFloat(stock.volumeRatio) || 0;
           const changeRate = parseFloat(stock.changeRate) || 0;
-          const change = parseFloat(stock.change) || 0;
-          const isVolumeSpike = volRatio >= 1.5;
-          const isPriceUp = (changeRate > 0) || (change > 0);
+          const changeVal = parseFloat(stock.change) || 0;
+          const isVolumeSpike = volRatio >= 1.48;
+          const isPriceUp = (changeRate > 0) || (changeVal > 0);
 
           if (!isVolumeSpike || !isPriceUp) {
             return false;
