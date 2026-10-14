@@ -6,13 +6,13 @@ import re
 import requests
 from datetime import datetime
 
-# 共同請求標頭，模擬正常瀏覽器
+# 共同請求標頭，模擬標準瀏覽器
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
 }
 
 def clean_number(val_str):
-    """去除千分位逗號並安全轉為浮點數"""
+    """去除千分位逗號與字元，安全轉為浮點數"""
     if not val_str:
         return 0.0
     clean = re.sub(r'[^\d\.\-]', '', str(val_str))
@@ -23,8 +23,8 @@ def clean_number(val_str):
 
 def fetch_twse_quotes():
     """
-    1. 抓取臺灣證券交易所每日上市個股收盤行情 (MI_INDEX)
-    欄位：[0]代號, [1]名稱, [2]成交股數, [7]漲跌符號(含HTML), [8]收盤價, [9]漲跌價差
+    抓取臺灣證券交易所每日上市個股收盤行情 (MI_INDEX)
+    包含：代號、名稱、成交張數、收盤價、漲跌符號與價差
     """
     url = "https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&type=ALLBUT0999"
     stocks = {}
@@ -62,11 +62,10 @@ def fetch_twse_quotes():
                 # 當日收盤價
                 price = clean_number(row[8])
 
-                # 解析漲跌符號與價差
+                # 漲跌符號與價差 (row[7]可能帶有 HTML 顏色標籤)
                 raw_diff = clean_number(row[9]) if len(row) > 9 else 0.0
                 sign_str = str(row[7])
 
-                # 證交所符號解析（包含 HTML 標籤判斷）
                 if '-' in sign_str or 'green' in sign_str:
                     diff = -abs(raw_diff)
                 elif '+' in sign_str or 'red' in sign_str:
@@ -97,23 +96,33 @@ def fetch_twse_quotes():
 
 def fetch_twse_pe():
     """
-    2. 抓取證交所官方發布之個股日本益比 (P/E)、殖利率、淨值比 (BWIBBU_d)
+    抓取證交所官方 OpenAPI 本益比、殖利率與淨值比 (BWIBBU_ALL)
+    直接讀取標準 JSON 欄位：Code (代號) 與 PEratio (本益比)，避開股利年度誤植問題
     """
-    url = "https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=json&selectType=ALL"
+    url = "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL"
     pe_dict = {}
     try:
-        print("正在向證交所請求官方本益比清單 (BWIBBU)...")
+        print("向證交所 OpenAPI 請求全市場真實本益比 (BWIBBU_ALL)...")
         res = requests.get(url, headers=HEADERS, timeout=20)
         if res.status_code == 200:
             data = res.json()
-            rows = data.get('data', [])
-            for row in rows:
-                code = str(row[0]).strip()
-                pe_val = clean_number(row[4])
-                pe_dict[code] = pe_val
-            print(f"成功取得 {len(pe_dict)} 檔個股官方本益比資料。")
+            for item in data:
+                code = str(item.get("Code", "")).strip()
+                pe_raw = str(item.get("PEratio", "")).replace(',', '').strip()
+                
+                # 排除空值或無本益比者
+                if pe_raw and pe_raw != '-':
+                    try:
+                        pe_val = float(pe_raw)
+                        # 避免異常雜訊值，過濾超過 1000 倍之偏離值
+                        pe_dict[code] = round(pe_val, 2) if pe_val < 1000 else 0.0
+                    except ValueError:
+                        pe_dict[code] = 0.0
+                else:
+                    pe_dict[code] = 0.0
+            print(f"成功取得 {len(pe_dict)} 檔個股官方真實本益比！")
     except Exception as e:
-        print(f"抓取本益比資料時發生錯誤: {e}")
+        print(f"OpenAPI 本益比抓取異常: {e}")
     return pe_dict
 
 def main():
@@ -125,10 +134,10 @@ def main():
     quotes = fetch_twse_quotes()
     pe_data = fetch_twse_pe()
 
-    # 防呆機制：若當日未抓到行情，保留原 JSON 檔避免被洗成空檔案
+    # 防呆機制：若當日未抓到行情（例如週休假日或颱風休市），保留既有檔案不覆寫成空檔案
     if not quotes:
         if os.path.exists("market_stocks.json"):
-            print("【防呆警示】本日未獲取到有效交易行情，保留既有 market_stocks.json 檔案。")
+            print("【防呆警示】本日未獲取到交易行情，保留原有的 market_stocks.json 檔案。")
             return
         else:
             print("【警告】未抓取到資料且本地無既有備份。")
@@ -141,9 +150,9 @@ def main():
         change_rate = float(item['changeRate'])
         change_val = float(item['change'])
 
-        # 取得本益比
+        # 官方本益比（虧損或未公布設定為 0.0）
         official_pe = float(pe_data.get(code, 0.0))
-        pe = round(official_pe, 2) if official_pe > 0 else 0.0
+        pe = official_pe if official_pe > 0 else 0.0
 
         # 計算每股盈餘 EPS 與理論股價 (PE * EPS)
         if pe > 0 and price > 0:
@@ -155,7 +164,7 @@ def main():
 
         # ----------------------------------------------------
         # 1. 量能與漲跌處理 (修正條件二：帶量紅K突破)
-        # 讓全市場約 16% 的股票量比 >= 1.5 倍，且必須為上漲紅K
+        # 設定約 16% 個股量比 >= 1.5 倍，且必須為上漲紅K
         # ----------------------------------------------------
         is_vol_breakout = (random.random() < 0.16)
 
@@ -173,14 +182,14 @@ def main():
 
         # ----------------------------------------------------
         # 2. 籌碼集中度配置 (修正條件一：主力籌碼鎖定)
-        # 獨立分配約 12%~15% 的標的具備主力波段佈局特徵
+        # 獨立分配約 13% 的標的具備主力波段佈局特徵
         # ----------------------------------------------------
         is_strong_chips = (random.random() < 0.13)
 
         if is_strong_chips:
-            trust_streak = random.randint(3, 8)       # 投信連買 >= 3 天
-            big_holder_streak = random.randint(2, 5)  # 大戶連增 >= 2 週
-            retail_streak = random.randint(2, 4)      # 散戶連退 >= 2 週
+            trust_streak = random.randint(3, 8)          # 投信連買 >= 3 天
+            big_holder_streak = random.randint(2, 5)     # 大戶連增 >= 2 週
+            retail_streak = random.randint(2, 4)         # 散戶連退 >= 2 週
             shareholder_diff = -random.randint(120, 850) # 股東人數減少 (< 0)
             broker_diff = -random.randint(18, 70)        # 買賣家數差為負 (< 0)
         else:
@@ -190,7 +199,7 @@ def main():
             shareholder_diff = random.randint(-80, 350)
             broker_diff = random.randint(-10, 60)
 
-        # 風控陷阱標記
+        # 法人陷阱風控標記
         trap_foreign_sell = (random.random() < 0.03)
         trap_large_index_arbitrage = (code in ['2330', '2317', '2454'])
         trap_dealer_hedge_spike = (random.random() < 0.02)
@@ -220,7 +229,7 @@ def main():
 
     print(f"數據計算整合完成，共產生 {len(output)} 檔個股完整資料。")
 
-    # 輸出為 JSON 檔
+    # 輸出為 JSON 檔供前端網頁載入
     file_path = "market_stocks.json"
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
