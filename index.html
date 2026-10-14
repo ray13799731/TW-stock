@@ -46,7 +46,7 @@
 
   <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
-    <!-- 策略控制看板 (預設條件一與條件二皆已啟用) -->
+    <!-- 策略控制看板 (三項皆已預設啟用) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- 條件一：主力籌碼集中鎖定 (預設啟用) -->
       <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
@@ -79,7 +79,7 @@
         </button>
       </div>
 
-      <!-- 防踩雷濾網 -->
+      <!-- 防踩雷濾網 (已改為預設啟用) -->
       <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
         <div>
           <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">風控機制</span>
@@ -87,9 +87,9 @@
           <p class="text-xs text-slate-400 mt-1">排除外資大賣壓盤、權值套利、自營避險飆高</p>
         </div>
         <button id="btn-filter-traps" onclick="toggleFilter('traps')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700">
-          <i class="fa-solid fa-power-off"></i>
-          防踩雷濾網 (未啟用)
+                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-600/20">
+          <i class="fa-solid fa-check"></i>
+          防踩雷濾網 (已啟用)
         </button>
       </div>
 
@@ -112,7 +112,7 @@
           </button>
         </div>
         <div class="text-[11px] text-slate-400 flex justify-between">
-          <span>雙條件選出：<b id="stat-matches" class="text-amber-400 text-sm">0</b> 檔</span>
+          <span>精選標的：<b id="stat-matches" class="text-amber-400 text-sm">0</b> 檔</span>
           <span>上市櫃總計：<b id="stat-total" class="text-slate-300">0</b> 檔</span>
         </div>
       </div>
@@ -162,11 +162,11 @@
     let pageSize = 50;
     let currentSort = { key: 'volumeRatio', asc: false };
 
-    // 【修改重點 3】：預設將條件一與條件二均設為 true (打開網頁直接篩選)
+    // 三大條件預設全部啟用：籌碼深度鎖碼 + 帶量紅K起漲 + 排除法人陷阱
     const filters = {
       chips: true,
       vol: true,
-      traps: false
+      traps: true
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -201,7 +201,6 @@
         item.changeRate = parseFloat(item.changeRate) || 0;
         item.change = parseFloat(item.change) || 0;
         item.pe = parseFloat(item.pe) || 0.0;
-        // 官方財報原始 EPS
         item.eps = parseFloat(item.eps) || 0.0;
         item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
       });
@@ -245,7 +244,7 @@
           }
         }
 
-        // 條件三：排除陷阱
+        // 條件三：排除陷阱 (風控機制)
         if (filters.traps) {
           if (stock.trapForeignSell || stock.trapLargeIndexArbitrage || stock.trapDealerHedgeSpike) {
             return false;
@@ -338,7 +337,6 @@
           ? `<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1 py-0.2 rounded ml-1">低估</span>`
           : '';
 
-        // 上市與上櫃標籤顏色
         const marketBadge = item.market === '上市'
           ? `<span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-sans">上市</span>`
           : `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-sans">上櫃</span>`;
