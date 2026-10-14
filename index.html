@@ -25,9 +25,9 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-xl font-bold tracking-tight text-white">台股全市場量價籌碼與價值估值系統</h1>
-            <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">全上市櫃 1,800+ 檔</span>
+            <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">上市+上櫃 1,800+ 檔</span>
           </div>
-          <p class="text-xs text-slate-400">籌碼鎖碼・帶量紅K突破・本益比・EPS・理論計算股價評估</p>
+          <p class="text-xs text-slate-400">主力投信鎖碼・千張大戶連增・帶量紅K起漲・官方財報原始 EPS</p>
         </div>
       </div>
 
@@ -46,9 +46,9 @@
 
   <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
-    <!-- 策略控制看板 -->
+    <!-- 策略控制看板 (預設條件一與條件二皆已啟用) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <!-- 條件一：主力籌碼集中鎖定 -->
+      <!-- 條件一：主力籌碼集中鎖定 (預設啟用) -->
       <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
         <div>
           <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">條件一</span>
@@ -56,13 +56,13 @@
           <p class="text-xs text-slate-400 mt-1">投信連買 &ge; 3日、大戶連增、家數差負值</p>
         </div>
         <button id="btn-filter-chips" onclick="toggleFilter('chips')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700">
-          <i class="fa-solid fa-power-off"></i>
-          籌碼集中鎖定 (未啟用)
+                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-600/20">
+          <i class="fa-solid fa-check"></i>
+          籌碼集中鎖定 (已啟用)
         </button>
       </div>
 
-      <!-- 條件二：帶量紅K突破 -->
+      <!-- 條件二：帶量紅K突破 (預設啟用) -->
       <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
         <div>
           <div class="flex items-center gap-1.5">
@@ -112,8 +112,8 @@
           </button>
         </div>
         <div class="text-[11px] text-slate-400 flex justify-between">
-          <span>符合標的：<b id="stat-matches" class="text-amber-400 text-sm">0</b> 檔</span>
-          <span>全市場存量：<b id="stat-total" class="text-slate-300">0</b> 檔</span>
+          <span>雙條件選出：<b id="stat-matches" class="text-amber-400 text-sm">0</b> 檔</span>
+          <span>上市櫃總計：<b id="stat-total" class="text-slate-300">0</b> 檔</span>
         </div>
       </div>
     </div>
@@ -124,10 +124,10 @@
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950/70 text-slate-400 uppercase tracking-wider border-b border-slate-800 select-none">
             <tr>
-              <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">股票 <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">股票代號 / 名稱 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('price')">收盤價 (漲跌) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">本益比 (P/E) <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('eps')">每股盈餘 (EPS) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('eps')">官方財報 EPS <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 (PE*EPS) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日成交量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
@@ -162,9 +162,10 @@
     let pageSize = 50;
     let currentSort = { key: 'volumeRatio', asc: false };
 
+    // 【修改重點 3】：預設將條件一與條件二均設為 true (打開網頁直接篩選)
     const filters = {
-      chips: false,
-      vol: true, // 預設開啟條件二 (帶量紅K)
+      chips: true,
+      vol: true,
       traps: false
     };
 
@@ -182,7 +183,7 @@
         sanitizeFinancialData();
 
         statusEl.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300";
-        statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>已連線 (${rawMarketData.length} 檔)</span>`;
+        statusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>已連線上市櫃 (${rawMarketData.length} 檔)</span>`;
       } catch (err) {
         rawMarketData = generateMockData();
         statusEl.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-950/60 border border-amber-800 text-xs text-amber-300";
@@ -193,7 +194,6 @@
       executeFiltering();
     }
 
-    // 數據清洗與基本面理論推算
     function sanitizeFinancialData() {
       rawMarketData.forEach(item => {
         item.price = parseFloat(item.price) || 0;
@@ -201,15 +201,9 @@
         item.changeRate = parseFloat(item.changeRate) || 0;
         item.change = parseFloat(item.change) || 0;
         item.pe = parseFloat(item.pe) || 0.0;
-        
-        // 若有官方本益比則推導 EPS，虧損則設為 0
-        if (item.pe > 0 && item.price > 0) {
-          item.eps = parseFloat((item.price / item.pe).toFixed(2));
-          item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
-        } else {
-          item.eps = 0.0;
-          item.calculatedPrice = item.price;
-        }
+        // 官方財報原始 EPS
+        item.eps = parseFloat(item.eps) || 0.0;
+        item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
       });
     }
 
@@ -223,7 +217,6 @@
           const matchCode = String(stock.code).toLowerCase().includes(query);
           const matchName = String(stock.name).toLowerCase().includes(query);
           if (!matchCode && !matchName) return false;
-          // 若精確輸入4碼代號則不受按鈕限制
           if (query.length >= 4 && matchCode) return true;
         }
 
@@ -244,7 +237,7 @@
           const changeRate = parseFloat(stock.changeRate) || 0;
           const changeVal = parseFloat(stock.change) || 0;
 
-          const isVolumeSpike = volRatio >= 1.48; // 容許微小浮點數誤差
+          const isVolumeSpike = volRatio >= 1.48;
           const isPriceUp = (changeRate > 0) || (changeVal > 0);
 
           if (!isVolumeSpike || !isPriceUp) {
@@ -340,16 +333,22 @@
         const changeColor = isUp ? 'text-rose-400 font-semibold' : (isDown ? 'text-emerald-400 font-semibold' : 'text-slate-400');
         const changeSign = isUp ? '+' : '';
 
-        // 理論計算股價比較（若市價 < 計算股價，代表潛在低估空間）
-        const isUndervalued = item.price > 0 && item.price < item.calculatedPrice;
+        const isUndervalued = item.price > 0 && item.calculatedPrice > 0 && item.price < item.calculatedPrice;
         const valuationBadge = isUndervalued
           ? `<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1 py-0.2 rounded ml-1">低估</span>`
           : '';
 
+        // 上市與上櫃標籤顏色
+        const marketBadge = item.market === '上市'
+          ? `<span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-sans">上市</span>`
+          : `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-sans">上櫃</span>`;
+
         return `
           <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/40">
-            <td class="py-3 px-4 font-sans font-bold text-white">
-              ${item.code} <span class="text-slate-400 font-normal ml-1">${item.name}</span>
+            <td class="py-3 px-4 font-sans font-bold text-white flex items-center gap-1.5">
+              ${marketBadge}
+              <span>${item.code}</span>
+              <span class="text-slate-400 font-normal ml-0.5">${item.name}</span>
             </td>
             <td class="py-3 px-3">
               <span class="text-slate-100 font-semibold">${item.price.toFixed(1)}</span>
@@ -361,7 +360,7 @@
               ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500 font-normal">虧損</span>'}
             </td>
             <td class="py-3 px-3 text-slate-200">
-              ${item.eps > 0 ? '$' + item.eps.toFixed(2) : '<span class="text-slate-500">-</span>'}
+              ${item.eps !== 0 ? '$' + item.eps.toFixed(2) : '<span class="text-slate-500">-</span>'}
             </td>
             <td class="py-3 px-3">
               <span class="text-amber-300 font-semibold">$${item.calculatedPrice.toFixed(1)}</span>
@@ -397,26 +396,26 @@
 
     function exportCSV() {
       if (filteredData.length === 0) return alert("無資料可匯出！");
-      let csv = "股票代號,股票名稱,收盤價,漲跌幅,本益比(PE),每股盈餘(EPS),計算股價(PE*EPS),量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
+      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,本益比(PE),官方財報EPS,計算股價(PE*EPS),量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
       filteredData.forEach(s => {
-        csv += `${s.code},${s.name},${s.price},${s.changeRate}%,${s.pe},${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
+        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.pe},${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
       });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `台股價值量價精選清單_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `台股上市櫃精選清單_${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
     }
 
     function generateMockData() {
       const list = [];
-      for (let i = 1; i <= 1000; i++) {
+      for (let i = 1; i <= 1800; i++) {
         const code = (2000 + i).toString();
         list.push({
           code: code,
           name: `台股標的-${code}`,
-          market: '上市',
+          market: i % 2 === 0 ? '上市' : '上櫃',
           price: 45.0,
           change: 1.5,
           changeRate: 3.4,
