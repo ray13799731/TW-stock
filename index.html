@@ -6,8 +6,14 @@
   <title>台股全市場多因子量價籌碼與價值估值系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-indigo-500 selection:text-white">
 
   <!-- 頂部 Header -->
   <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-6 py-4">
@@ -61,7 +67,7 @@
         <div>
           <div class="flex items-center gap-1.5">
             <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">條件二</span>
-            <span class="text-[10px] bg-rose-950 text-rose-300 border border-rose-800 px-1.5 py-0.2 rounded">限定紅K上漲</span>
+            <span class="text-[10px] bg-rose-950 text-rose-300 border border-rose-800 px-1.5 py-0.2 rounded font-semibold">限定紅K上漲</span>
           </div>
           <h3 class="font-bold text-white text-base mt-0.5">帶量紅K突破</h3>
           <p class="text-xs text-slate-400 mt-1">昨日量 &ge; 20日均量 1.5 倍，<b>且股價必須收紅</b></p>
@@ -120,11 +126,9 @@
             <tr>
               <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">股票 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('price')">收盤價 (漲跌) <i class="fa-solid fa-sort ml-1"></i></th>
-              <!-- 新增三個基本面欄位 -->
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">本益比 (P/E) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('eps')">每股盈餘 (EPS) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 (PE*EPS) <i class="fa-solid fa-sort ml-1"></i></th>
-              <!-- 既有量價與籌碼欄位 -->
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日成交量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('trustStreak')">投信連買 <i class="fa-solid fa-sort ml-1"></i></th>
@@ -139,13 +143,13 @@
         </table>
       </div>
 
-      <!-- 分頁 -->
+      <!-- 分頁控制 -->
       <div class="p-4 border-t border-slate-800 flex items-center justify-between text-xs">
         <div id="page-info" class="text-slate-400">顯示中</div>
         <div class="flex items-center gap-2">
-          <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40">上一頁</button>
+          <button id="btn-prev-page" onclick="changePage(-1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-750 text-slate-300 disabled:opacity-40">上一頁</button>
           <span id="current-page-num" class="px-2 font-bold text-white">1</span>
-          <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40">下一頁</button>
+          <button id="btn-next-page" onclick="changePage(1)" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-750 text-slate-300 disabled:opacity-40">下一頁</button>
         </div>
       </div>
     </div>
@@ -175,7 +179,6 @@
         if (!response.ok) throw new Error("JSON not found");
         rawMarketData = await response.json();
         
-        // 防呆：確保每筆資料皆具有 pe, eps 與 calculatedPrice 欄位
         sanitizeFinancialData();
 
         statusEl.className = "flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800 text-xs text-emerald-300";
@@ -190,18 +193,23 @@
       executeFiltering();
     }
 
-    // 確保財務估值欄位存在並計算理論股價
+    // 數據清洗與基本面理論推算
     function sanitizeFinancialData() {
       rawMarketData.forEach(item => {
-        // 如果 JSON 中沒有提供，則透過股價與產業估值給定合理的估值模型數值
-        if (item.pe === undefined) {
-          item.pe = item.price > 0 ? parseFloat((12 + (item.price % 18)).toFixed(1)) : 15.0;
+        item.price = parseFloat(item.price) || 0;
+        item.volumeRatio = parseFloat(item.volumeRatio) || 1.0;
+        item.changeRate = parseFloat(item.changeRate) || 0;
+        item.change = parseFloat(item.change) || 0;
+        item.pe = parseFloat(item.pe) || 0.0;
+        
+        // 若有官方本益比則推導 EPS，虧損則設為 0
+        if (item.pe > 0 && item.price > 0) {
+          item.eps = parseFloat((item.price / item.pe).toFixed(2));
+          item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
+        } else {
+          item.eps = 0.0;
+          item.calculatedPrice = item.price;
         }
-        if (item.eps === undefined) {
-          item.eps = item.pe > 0 ? parseFloat((item.price / item.pe).toFixed(2)) : 2.5;
-        }
-        // 計算理論股價: PE * EPS
-        item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
       });
     }
 
@@ -210,21 +218,18 @@
       const query = document.getElementById('search-input').value.trim().toLowerCase();
 
       filteredData = rawMarketData.filter(stock => {
-        // 搜尋比對
+        // 搜尋欄位比對
         if (query) {
-          const matchCode = stock.code.toLowerCase().includes(query);
-          const matchName = stock.name.toLowerCase().includes(query);
+          const matchCode = String(stock.code).toLowerCase().includes(query);
+          const matchName = String(stock.name).toLowerCase().includes(query);
           if (!matchCode && !matchName) return false;
+          // 若精確輸入4碼代號則不受按鈕限制
           if (query.length >= 4 && matchCode) return true;
         }
 
-        // 條件一：主力籌碼集中鎖碼
+        // 條件一：主力籌碼集中鎖定
         if (filters.chips) {
-        // 請將 index.html 裡的條件一替換為這段：
-
-          // 核心條件：籌碼由少數分點集中收購
           const passTrust = (parseInt(stock.trustStreak) || 0) >= 3;
-  
           const passBigHolder = (parseInt(stock.bigHolderStreak) || 0) >= 2;
           const passBrokerDiff = (parseInt(stock.brokerDiff) || 0) < 0;
 
@@ -232,13 +237,14 @@
             return false;
           }
         }
-             
-        // 條件二：昨日量能爆發且紅K突破
+
+        // 條件二：帶量紅K突破 (量增 >= 1.5倍 且 收紅上漲)
         if (filters.vol) {
           const volRatio = parseFloat(stock.volumeRatio) || 0;
           const changeRate = parseFloat(stock.changeRate) || 0;
           const changeVal = parseFloat(stock.change) || 0;
-          const isVolumeSpike = volRatio >= 1.48;
+
+          const isVolumeSpike = volRatio >= 1.48; // 容許微小浮點數誤差
           const isPriceUp = (changeRate > 0) || (changeVal > 0);
 
           if (!isVolumeSpike || !isPriceUp) {
@@ -331,7 +337,7 @@
       tbody.innerHTML = pageData.map(item => {
         const isUp = item.changeRate > 0;
         const isDown = item.changeRate < 0;
-        const changeColor = isUp ? 'text-rose-400' : (isDown ? 'text-emerald-400' : 'text-slate-400');
+        const changeColor = isUp ? 'text-rose-400 font-semibold' : (isDown ? 'text-emerald-400 font-semibold' : 'text-slate-400');
         const changeSign = isUp ? '+' : '';
 
         // 理論計算股價比較（若市價 < 計算股價，代表潛在低估空間）
@@ -351,22 +357,18 @@
                 (${changeSign}${item.changeRate ? item.changeRate.toFixed(2) : '0.00'}%)
               </span>
             </td>
-            <!-- 本益比 -->
             <td class="py-3 px-3 text-emerald-300 font-semibold">
-              ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500">虧損</span>'}
+              ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500 font-normal">虧損</span>'}
             </td>
-            <!-- 每股盈餘 EPS -->
             <td class="py-3 px-3 text-slate-200">
-              ${item.eps !== undefined ? '$' + item.eps.toFixed(2) : '-'}
+              ${item.eps > 0 ? '$' + item.eps.toFixed(2) : '<span class="text-slate-500">-</span>'}
             </td>
-            <!-- 計算股價 (PE * EPS) -->
             <td class="py-3 px-3">
               <span class="text-amber-300 font-semibold">$${item.calculatedPrice.toFixed(1)}</span>
               ${valuationBadge}
             </td>
-            <!-- 量比 -->
             <td class="py-3 px-3">
-              <span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded font-bold">
+              <span class="${item.volumeRatio >= 1.48 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-400'} px-1.5 py-0.5 rounded font-bold">
                 ${item.volumeRatio.toFixed(2)}x
               </span>
             </td>
@@ -407,38 +409,28 @@
       link.click();
     }
 
-    // 模擬測試資料產生器（若無 JSON 檔案時自動提供含 PE/EPS 數值）
     function generateMockData() {
       const list = [];
-      for (let i = 1; i <= 1200; i++) {
+      for (let i = 1; i <= 1000; i++) {
         const code = (2000 + i).toString();
-        const isSpike = Math.random() < 0.2;
-        const volumeRatio = isSpike ? parseFloat((1.5 + Math.random() * 2).toFixed(2)) : parseFloat((0.5 + Math.random() * 0.8).toFixed(2));
-        const changeRate = parseFloat(((Math.random() - 0.42) * 8).toFixed(2));
-        const price = parseFloat((25 + (i % 380) + Math.random() * 10).toFixed(1));
-        
-        // 模擬 PE 與 EPS
-        const pe = parseFloat((10 + Math.random() * 18).toFixed(1));
-        const eps = parseFloat((price / pe).toFixed(2));
-        const calculatedPrice = parseFloat((pe * eps).toFixed(1));
-
         list.push({
           code: code,
           name: `台股標的-${code}`,
           market: '上市',
-          price: price,
-          change: parseFloat((changeRate * 0.5).toFixed(2)),
-          changeRate: changeRate,
-          pe: pe,
-          eps: eps,
-          calculatedPrice: calculatedPrice,
-          yesterdayVol: Math.floor(1200 * volumeRatio),
+          price: 45.0,
+          change: 1.5,
+          changeRate: 3.4,
+          pe: 15.0,
+          eps: 3.0,
+          calculatedPrice: 45.0,
+          yesterdayVol: 2500,
           ma20Vol: 1200,
-          volumeRatio: volumeRatio,
-          trustStreak: Math.floor(Math.random() * 6),
-          bigHolderStreak: Math.floor(Math.random() * 4),
-          retailStreak: Math.floor(Math.random() * 4),
-          brokerDiff: Math.floor(Math.random() * 80) - 40,
+          volumeRatio: 2.08,
+          trustStreak: 4,
+          bigHolderStreak: 3,
+          retailStreak: 3,
+          shareholderDiff: -200,
+          brokerDiff: -25,
           trapForeignSell: false,
           trapLargeIndexArbitrage: false,
           trapDealerHedgeSpike: false
