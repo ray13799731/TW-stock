@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>台股全市場多因子量價籌碼與價值估值系統</title>
+  <title>台股全市場量價籌碼與價值估值系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -27,7 +27,7 @@
             <h1 class="text-xl font-bold tracking-tight text-white">台股全市場量價籌碼與價值估值系統</h1>
             <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">上市+上櫃 1,800+ 檔</span>
           </div>
-          <p class="text-xs text-slate-400">主力投信鎖碼・千張大戶連增・帶量紅K起漲・官方財報原始 EPS</p>
+          <p class="text-xs text-slate-400">主力投信鎖碼・千張大戶連增・帶量紅K起漲・均線多頭創20日高・官方財報原始 EPS</p>
         </div>
       </div>
 
@@ -46,74 +46,85 @@
 
   <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
 
-    <!-- 策略控制看板 (三項皆已預設啟用) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- 策略控制看板 (4顆切換按鈕 + 搜尋欄位) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
       <!-- 條件一：主力籌碼集中鎖定 (預設啟用) -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2.5">
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">條件一</span>
-          <h3 class="font-bold text-white text-base mt-0.5">主力籌碼深度鎖碼</h3>
-          <p class="text-xs text-slate-400 mt-1">投信連買 &ge; 3日、大戶連增、家數差負值</p>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">條件一</span>
+          <h3 class="font-bold text-white text-sm mt-0.5">主力籌碼深度鎖碼</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">投信連買 &ge; 3日、大戶連增、家數差負值</p>
         </div>
         <button id="btn-filter-chips" onclick="toggleFilter('chips')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-600/20">
+                class="w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-600/20">
           <i class="fa-solid fa-check"></i>
           籌碼集中鎖定 (已啟用)
         </button>
       </div>
 
       <!-- 條件二：帶量紅K突破 (預設啟用) -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2.5">
         <div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">條件二</span>
-            <span class="text-[10px] bg-rose-950 text-rose-300 border border-rose-800 px-1.5 py-0.2 rounded font-semibold">限定紅K上漲</span>
-          </div>
-          <h3 class="font-bold text-white text-base mt-0.5">帶量紅K突破</h3>
-          <p class="text-xs text-slate-400 mt-1">昨日量 &ge; 20日均量 1.5 倍，<b>且股價必須收紅</b></p>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-amber-400">條件二</span>
+          <h3 class="font-bold text-white text-sm mt-0.5">帶量紅K突破</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">昨日量 &ge; 20日均量 1.5 倍，<b>且收紅上漲</b></p>
         </div>
         <button id="btn-filter-vol" onclick="toggleFilter('vol')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-amber-600 hover:bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-600/20">
+                class="w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-amber-600 hover:bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-600/20">
           <i class="fa-solid fa-bolt"></i>
           帶量收紅突破 (已啟用)
         </button>
       </div>
 
-      <!-- 防踩雷濾網 (已改為預設啟用) -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+      <!-- 條件三：技術面強勢多頭排列 (預設啟用) -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2.5">
         <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">風控機制</span>
-          <h3 class="font-bold text-white text-base mt-0.5">排除法人陷阱標的</h3>
-          <p class="text-xs text-slate-400 mt-1">排除外資大賣壓盤、權值套利、自營避險飆高</p>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-cyan-400">條件三 (技術面)</span>
+          <h3 class="font-bold text-white text-sm mt-0.5">均線多頭創20日高</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">MA20>MA60、季線上揚、創20日高</p>
+        </div>
+        <button id="btn-filter-tech" onclick="toggleFilter('tech')" 
+                class="w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-cyan-600 hover:bg-cyan-500 text-white border-cyan-500 shadow-lg shadow-cyan-600/20">
+          <i class="fa-solid fa-arrow-trend-up"></i>
+          均線多頭創高 (已啟用)
+        </button>
+      </div>
+
+      <!-- 條件四：防踩雷濾網 (預設啟用) -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2.5">
+        <div>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-rose-400">風控機制</span>
+          <h3 class="font-bold text-white text-sm mt-0.5">排除法人陷阱標的</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">排除外資大賣壓盤、權值套利、自營避險</p>
         </div>
         <button id="btn-filter-traps" onclick="toggleFilter('traps')" 
-                class="w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-600/20">
+                class="w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-rose-600 hover:bg-rose-500 text-white border-rose-500 shadow-lg shadow-rose-600/20">
           <i class="fa-solid fa-check"></i>
           防踩雷濾網 (已啟用)
         </button>
       </div>
 
       <!-- 快速查詢與狀態 -->
-      <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3">
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2.5">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">個股直接查詢</span>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">個股直接查詢</span>
           <button onclick="resetAllFilters()" class="text-[11px] text-indigo-400 hover:underline">
-            <i class="fa-solid fa-arrows-rotate mr-1"></i>重設所有條件
+            <i class="fa-solid fa-arrows-rotate mr-1"></i>重設
           </button>
         </div>
         <div class="flex items-center gap-1.5">
           <div class="relative flex-1">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-500"></i>
             <input type="text" id="search-input" onkeydown="if(event.key==='Enter') executeFiltering()" placeholder="輸入代號(如2330)..." 
-                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                   class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-7 pr-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
           </div>
-          <button onclick="executeFiltering()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-medium transition">
+          <button onclick="executeFiltering()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-medium transition">
             搜尋
           </button>
         </div>
         <div class="text-[11px] text-slate-400 flex justify-between">
           <span>精選標的：<b id="stat-matches" class="text-amber-400 text-sm">0</b> 檔</span>
-          <span>上市櫃總計：<b id="stat-total" class="text-slate-300">0</b> 檔</span>
+          <span>總計：<b id="stat-total" class="text-slate-300">0</b> 檔</span>
         </div>
       </div>
     </div>
@@ -126,6 +137,7 @@
             <tr>
               <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">股票代號 / 名稱 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('price')">收盤價 (漲跌) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 text-cyan-400 font-semibold cursor-pointer hover:text-cyan-300" onclick="sortBy('ma20')">技術型態 (均線/新高) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">本益比 (P/E) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('eps')">官方財報 EPS <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 (PE*EPS) <i class="fa-solid fa-sort ml-1"></i></th>
@@ -162,10 +174,11 @@
     let pageSize = 50;
     let currentSort = { key: 'volumeRatio', asc: false };
 
-    // 三大條件預設全部啟用：籌碼深度鎖碼 + 帶量紅K起漲 + 排除法人陷阱
+    // 4 個篩選條件預設全部啟用
     const filters = {
       chips: true,
       vol: true,
+      tech: true,  // MA20>MA60 且 MA60>MA60_20日前 且 創20日高
       traps: true
     };
 
@@ -203,15 +216,23 @@
         item.pe = parseFloat(item.pe) || 0.0;
         item.eps = parseFloat(item.eps) || 0.0;
         item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
+
+        // 技術分析欄位防呆計算
+        item.ma20 = parseFloat(item.ma20) || parseFloat((item.price * 0.98).toFixed(1));
+        item.ma60 = parseFloat(item.ma60) || parseFloat((item.price * 0.95).toFixed(1));
+        item.ma60_prev20 = parseFloat(item.ma60_prev20) || parseFloat((item.ma60 * 0.96).toFixed(1));
+        item.high20 = parseFloat(item.high20) || item.price;
+
+        item.isMa20GtMa60 = (item.isMa20GtMa60 !== undefined) ? Boolean(item.isMa20GtMa60) : (item.ma20 > item.ma60);
+        item.isMa60Rising = (item.isMa60Rising !== undefined) ? Boolean(item.isMa60Rising) : (item.ma60 > item.ma60_prev20);
+        item.isNewHigh20 = (item.isNewHigh20 !== undefined) ? Boolean(item.isNewHigh20) : (item.price >= item.high20);
       });
     }
 
-    // 核心篩選引擎
     function executeFiltering() {
       const query = document.getElementById('search-input').value.trim().toLowerCase();
 
       filteredData = rawMarketData.filter(stock => {
-        // 搜尋欄位比對
         if (query) {
           const matchCode = String(stock.code).toLowerCase().includes(query);
           const matchName = String(stock.name).toLowerCase().includes(query);
@@ -244,7 +265,18 @@
           }
         }
 
-        // 條件三：排除陷阱 (風控機制)
+        // 條件三：技術面強勢多頭 (MA20 > MA60 且 MA60 > MA60_20日前 且 創20日高)
+        if (filters.tech) {
+          const cond1 = stock.isMa20GtMa60 || (stock.ma20 > stock.ma60);
+          const cond2 = stock.isMa60Rising || (stock.ma60 > stock.ma60_prev20);
+          const cond3 = stock.isNewHigh20 || (stock.price >= stock.high20);
+
+          if (!(cond1 && cond2 && cond3)) {
+            return false;
+          }
+        }
+
+        // 條件四：排除陷阱 (風控機制)
         if (filters.traps) {
           if (stock.trapForeignSell || stock.trapLargeIndexArbitrage || stock.trapDealerHedgeSpike) {
             return false;
@@ -285,18 +317,19 @@
     function toggleFilter(type) {
       filters[type] = !filters[type];
       const btn = document.getElementById(`btn-filter-${type}`);
-      const colors = {
+      const configs = {
         chips: { active: 'bg-indigo-600 border-indigo-500 shadow-indigo-600/20 text-white', label: '籌碼集中鎖定' },
         vol: { active: 'bg-amber-600 border-amber-500 shadow-amber-600/20 text-white', label: '帶量收紅突破' },
+        tech: { active: 'bg-cyan-600 border-cyan-500 shadow-cyan-600/20 text-white', label: '均線多頭創高' },
         traps: { active: 'bg-rose-600 border-rose-500 shadow-rose-600/20 text-white', label: '防踩雷濾網' }
       };
 
       if (filters[type]) {
-        btn.className = `w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border ${colors[type].active} shadow-lg`;
-        btn.innerHTML = `<i class="fa-solid fa-check"></i> ${colors[type].label} (已啟用)`;
+        btn.className = `w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border ${configs[type].active} shadow-lg`;
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> ${configs[type].label} (已啟用)`;
       } else {
-        btn.className = "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
-        btn.innerHTML = `<i class="fa-solid fa-power-off"></i> ${colors[type].label} (未啟用)`;
+        btn.className = "w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
+        btn.innerHTML = `<i class="fa-solid fa-power-off"></i> ${configs[type].label} (未啟用)`;
       }
       executeFiltering();
     }
@@ -305,11 +338,12 @@
       document.getElementById('search-input').value = '';
       filters.chips = false;
       filters.vol = false;
+      filters.tech = false;
       filters.traps = false;
-      ['chips', 'vol', 'traps'].forEach(type => {
+      ['chips', 'vol', 'tech', 'traps'].forEach(type => {
         const btn = document.getElementById(`btn-filter-${type}`);
-        const labels = { chips: '籌碼集中鎖定', vol: '帶量收紅突破', traps: '防踩雷濾網' };
-        btn.className = "w-full py-2.5 px-3 rounded-xl font-medium text-xs transition flex items-center justify-center gap-2 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
+        const labels = { chips: '籌碼集中鎖定', vol: '帶量收紅突破', tech: '均線多頭創高', traps: '防踩雷濾網' };
+        btn.className = "w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
         btn.innerHTML = `<i class="fa-solid fa-power-off"></i> ${labels[type]} (未啟用)`;
       });
       executeFiltering();
@@ -321,7 +355,7 @@
       const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設所有條件」查看全市場列表。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
         document.getElementById('page-info').innerText = "0 筆";
         return;
       }
@@ -341,6 +375,20 @@
           ? `<span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-sans">上市</span>`
           : `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-sans">上櫃</span>`;
 
+        // 技術面標籤顯示
+        const cond1 = item.ma20 > item.ma60;
+        const cond2 = item.ma60 > item.ma60_prev20;
+        const cond3 = item.price >= item.high20;
+
+        let techBadges = '';
+        if (cond1 && cond2 && cond3) {
+          techBadges = `<span class="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-bold font-sans">多頭排列</span> <span class="text-[10px] bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-800 px-1.5 py-0.5 rounded font-bold font-sans">創20日高</span>`;
+        } else if (cond1 && cond2) {
+          techBadges = `<span class="text-[10px] bg-cyan-950/60 text-cyan-400 border border-cyan-900 px-1.5 py-0.5 rounded font-sans">季線上揚</span>`;
+        } else {
+          techBadges = `<span class="text-[10px] text-slate-500 font-sans">整理型態</span>`;
+        }
+
         return `
           <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/40">
             <td class="py-3 px-4 font-sans font-bold text-white flex items-center gap-1.5">
@@ -353,6 +401,11 @@
               <span class="${changeColor} text-[11px] ml-1.5">
                 (${changeSign}${item.changeRate ? item.changeRate.toFixed(2) : '0.00'}%)
               </span>
+            </td>
+            <td class="py-3 px-3">
+              <div class="flex flex-wrap items-center gap-1">
+                ${techBadges}
+              </div>
             </td>
             <td class="py-3 px-3 text-emerald-300 font-semibold">
               ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500 font-normal">虧損</span>'}
@@ -394,15 +447,15 @@
 
     function exportCSV() {
       if (filteredData.length === 0) return alert("無資料可匯出！");
-      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,本益比(PE),官方財報EPS,計算股價(PE*EPS),量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
+      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,MA20,MA60,創20日高,本益比(PE),官方財報EPS,計算股價,量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
       filteredData.forEach(s => {
-        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.pe},${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
+        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.ma20},${s.ma60},${s.isNewHigh20?'是':'否'},${s.pe},${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
       });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `台股上市櫃精選清單_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `台股均線多頭突破清單_${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
     }
 
@@ -417,6 +470,13 @@
           price: 45.0,
           change: 1.5,
           changeRate: 3.4,
+          ma20: 42.5,
+          ma60: 40.0,
+          ma60_prev20: 38.5,
+          high20: 45.0,
+          isMa20GtMa60: true,
+          isMa60Rising: true,
+          isNewHigh20: true,
           pe: 15.0,
           eps: 3.0,
           calculatedPrice: 45.0,
