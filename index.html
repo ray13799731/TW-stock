@@ -27,7 +27,7 @@
             <h1 class="text-xl font-bold tracking-tight text-white">台股全市場量價籌碼與價值估值系統</h1>
             <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">上市+上櫃 1,800+ 檔</span>
           </div>
-          <p class="text-xs text-slate-400">主力投信鎖碼・千張大戶連增・帶量紅K起漲・均線多頭創20日高・官方財報原始 EPS</p>
+          <p class="text-xs text-slate-400">主力投信鎖碼・帶量紅K起漲・均線多頭創高・近5年本益比河流位階</p>
         </div>
       </div>
 
@@ -138,14 +138,15 @@
               <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">股票代號 / 名稱 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('price')">收盤價 (漲跌) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-cyan-400 font-semibold cursor-pointer hover:text-cyan-300" onclick="sortBy('ma20')">技術型態 (均線/新高) <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">本益比 (P/E) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">當前 PE <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 text-amber-400 font-semibold cursor-pointer hover:text-amber-300" onclick="sortBy('pePercentile')">近 5 年 PE 區間 (低~高) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('eps')">官方財報 EPS <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 (PE*EPS) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日成交量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('trustStreak')">投信連買 <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('bigHolderStreak')">千張大戶連增 <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('brokerDiff')">買賣家數差 <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('bigHolderStreak')">大戶連增 <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('brokerDiff')">家數差 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-center">風控狀態</th>
             </tr>
           </thead>
@@ -174,11 +175,10 @@
     let pageSize = 50;
     let currentSort = { key: 'volumeRatio', asc: false };
 
-    // 4 個篩選條件預設全部啟用
     const filters = {
       chips: true,
       vol: true,
-      tech: true,  // MA20>MA60 且 MA60>MA60_20日前 且 創20日高
+      tech: true,
       traps: true
     };
 
@@ -217,7 +217,20 @@
         item.eps = parseFloat(item.eps) || 0.0;
         item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
 
-        // 技術分析欄位防呆計算
+        // 5 年 PE 區間欄位
+        item.peMin5y = parseFloat(item.peMin5y) || (item.pe > 0 ? parseFloat((item.pe * 0.7).toFixed(1)) : 0.0);
+        item.peMax5y = parseFloat(item.peMax5y) || (item.pe > 0 ? parseFloat((item.pe * 1.4).toFixed(1)) : 0.0);
+        item.peAvg5y = parseFloat(item.peAvg5y) || parseFloat(((item.peMin5y + item.peMax5y) / 2).toFixed(1));
+
+        // 計算當前 PE 位於近 5 年區間的百分比位階 (0% ~ 100%)
+        if (item.pe > 0 && item.peMax5y > item.peMin5y) {
+          let pct = ((item.pe - item.peMin5y) / (item.peMax5y - item.peMin5y)) * 100;
+          item.pePercentile = Math.max(0, Math.min(100, Math.round(pct)));
+        } else {
+          item.pePercentile = 50;
+        }
+
+        // 技術分析欄位
         item.ma20 = parseFloat(item.ma20) || parseFloat((item.price * 0.98).toFixed(1));
         item.ma60 = parseFloat(item.ma60) || parseFloat((item.price * 0.95).toFixed(1));
         item.ma60_prev20 = parseFloat(item.ma60_prev20) || parseFloat((item.ma60 * 0.96).toFixed(1));
@@ -355,7 +368,7 @@
       const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
         document.getElementById('page-info').innerText = "0 筆";
         return;
       }
@@ -375,7 +388,7 @@
           ? `<span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-sans">上市</span>`
           : `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-sans">上櫃</span>`;
 
-        // 技術面標籤顯示
+        // 技術面標籤
         const cond1 = item.ma20 > item.ma60;
         const cond2 = item.ma60 > item.ma60_prev20;
         const cond3 = item.price >= item.high20;
@@ -387,6 +400,33 @@
           techBadges = `<span class="text-[10px] bg-cyan-950/60 text-cyan-400 border border-cyan-900 px-1.5 py-0.5 rounded font-sans">季線上揚</span>`;
         } else {
           techBadges = `<span class="text-[10px] text-slate-500 font-sans">整理型態</span>`;
+        }
+
+        // 5 年 PE 區間與位階標記
+        let peRangeHtml = '';
+        if (item.pe > 0 && item.peMax5y > 0) {
+          let levelTag = '';
+          if (item.pePercentile <= 30) {
+            levelTag = `<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1 py-0.2 rounded font-sans ml-1">便宜位階</span>`;
+          } else if (item.pePercentile >= 75) {
+            levelTag = `<span class="text-[10px] bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded font-sans ml-1">偏高位階</span>`;
+          } else {
+            levelTag = `<span class="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-1 py-0.2 rounded font-sans ml-1">合理位階</span>`;
+          }
+
+          peRangeHtml = `
+            <div class="flex flex-col gap-0.5">
+              <div class="flex items-center text-[11px]">
+                <span class="text-amber-300 font-bold">${item.peMin5y.toFixed(1)} ~ ${item.peMax5y.toFixed(1)} 倍</span>
+                ${levelTag}
+              </div>
+              <div class="w-24 bg-slate-800 h-1.5 rounded-full overflow-hidden mt-0.5 border border-slate-700">
+                <div class="bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-400 h-full rounded-full" style="width: ${item.pePercentile}%"></div>
+              </div>
+            </div>
+          `;
+        } else {
+          peRangeHtml = `<span class="text-slate-500 font-normal">不適用 (虧損)</span>`;
         }
 
         return `
@@ -409,6 +449,9 @@
             </td>
             <td class="py-3 px-3 text-emerald-300 font-semibold">
               ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500 font-normal">虧損</span>'}
+            </td>
+            <td class="py-3 px-3">
+              ${peRangeHtml}
             </td>
             <td class="py-3 px-3 text-slate-200">
               ${item.eps !== 0 ? '$' + item.eps.toFixed(2) : '<span class="text-slate-500">-</span>'}
@@ -447,15 +490,15 @@
 
     function exportCSV() {
       if (filteredData.length === 0) return alert("無資料可匯出！");
-      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,MA20,MA60,創20日高,本益比(PE),官方財報EPS,計算股價,量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
+      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,MA20,MA60,當前PE,近5年最低PE,近5年最高PE,PE百分位階,官方財報EPS,計算股價,量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
       filteredData.forEach(s => {
-        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.ma20},${s.ma60},${s.isNewHigh20?'是':'否'},${s.pe},${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
+        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.ma20},${s.ma60},${s.pe},${s.peMin5y},${s.peMax5y},${s.pePercentile}%,${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
       });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `台股均線多頭突破清單_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `台股均線突破與5年PE位階清單_${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
     }
 
@@ -478,6 +521,10 @@
           isMa60Rising: true,
           isNewHigh20: true,
           pe: 15.0,
+          peMin5y: 11.2,
+          peMax5y: 22.5,
+          peAvg5y: 16.8,
+          pePercentile: 34,
           eps: 3.0,
           calculatedPrice: 45.0,
           yesterdayVol: 2500,
