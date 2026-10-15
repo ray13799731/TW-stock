@@ -341,17 +341,14 @@ def main():
         pe_min_5y, pe_max_5y, pe_avg_5y = get_5y_pe_range(code, pe)
 
         # -------------------------------------------------------------
-        # 技術面指標：
-        # 1. 收盤價 > MA20 > MA60
-        # 2. MA20 > 20個交易日前的 MA20 (月線上揚)
-        # 3. 收盤價創 20 日新高
+        # 技術面指標：收盤價 > MA20 > MA60 且 MA20 > 20日前MA20 且 創20日高
         # -------------------------------------------------------------
         is_bullish_trend = (random.random() < 0.18)
         if is_bullish_trend and price > 0:
             ma20 = round(price * random.uniform(0.95, 0.98), 1)
             ma60 = round(ma20 * random.uniform(0.94, 0.97), 1)
-            ma20_prev20 = round(ma20 * random.uniform(0.92, 0.97), 1)  # 20 日前 MA20 較低
-            high20 = price  # 當前收盤價即為 20 日新高
+            ma20_prev20 = round(ma20 * random.uniform(0.92, 0.97), 1)
+            high20 = price
 
             is_price_gt_ma20_gt_ma60 = True
             is_ma20_rising = True
@@ -366,7 +363,9 @@ def main():
             is_ma20_rising = (ma20 > ma20_prev20)
             is_new_high20 = (price >= high20)
 
+        # -------------------------------------------------------------
         # 條件二：量能突破 (約 16% 個股帶量紅K)
+        # -------------------------------------------------------------
         is_vol_breakout = (random.random() < 0.16)
         if is_vol_breakout:
             vol_ratio = round(random.uniform(1.52, 3.40), 2)
@@ -378,7 +377,9 @@ def main():
             vol_ratio = round(random.uniform(0.55, 1.35), 2)
             ma20_vol = max(100, int(yesterday_vol / vol_ratio))
 
-        # 條件一：籌碼集中配置 (約 13% 個股深度鎖碼)
+        # -------------------------------------------------------------
+        # 條件一：籌碼集中配置 (升級土洋合拍: 近3日外資累買>0 且 投信累買>0)
+        # -------------------------------------------------------------
         is_strong_chips = (random.random() < 0.13)
         if is_strong_chips:
             trust_streak = random.randint(3, 8)
@@ -386,12 +387,18 @@ def main():
             retail_streak = random.randint(2, 4)
             shareholder_diff = -random.randint(120, 850)
             broker_diff = -random.randint(18, 70)
+            # 土洋合拍：外資與投信近3日累計買超均為正
+            foreign_net_3d = random.randint(350, 4200)
+            trust_net_3d = random.randint(280, 2600)
         else:
             trust_streak = random.randint(0, 1)
             big_holder_streak = random.randint(0, 1)
             retail_streak = random.randint(0, 1)
             shareholder_diff = random.randint(-80, 350)
             broker_diff = random.randint(-10, 60)
+            # 一般狀態可能外資倒貨或投信沒進場
+            foreign_net_3d = random.randint(-2500, 800)
+            trust_net_3d = random.randint(-400, 150)
 
         output.append({
             "code": item['code'],
@@ -406,7 +413,6 @@ def main():
             "peMin5y": float(pe_min_5y),
             "peMax5y": float(pe_max_5y),
             "peAvg5y": float(pe_avg_5y),
-            # 技術面指標欄位
             "ma20": float(ma20),
             "ma60": float(ma60),
             "ma20_prev20": float(ma20_prev20),
@@ -422,6 +428,9 @@ def main():
             "retailStreak": int(retail_streak),
             "shareholderDiff": int(shareholder_diff),
             "brokerDiff": int(broker_diff),
+            # 新增：法人近3日累積買賣超
+            "foreignNet3d": int(foreign_net_3d),
+            "trustNet3d": int(trust_net_3d),
             "trapForeignSell": (random.random() < 0.03),
             "trapLargeIndexArbitrage": (code in ['2330', '2317', '2454']),
             "trapDealerHedgeSpike": (random.random() < 0.02)
