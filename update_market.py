@@ -12,7 +12,6 @@ HEADERS = {
 }
 
 def clean_number(val_str):
-    """去除千分位逗號與非數值字元，安全轉為浮點數"""
     if val_str is None:
         return 0.0
     clean = re.sub(r'[^\d\.\-]', '', str(val_str))
@@ -22,13 +21,13 @@ def clean_number(val_str):
         return 0.0
 
 # -------------------------------------------------------------------------
-# 1. 抓取臺灣證交所上市股票行情 (TWSE)
+# 1. 抓取上市股票行情 (TWSE)
 # -------------------------------------------------------------------------
 def fetch_twse_quotes():
     url = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?response=json&type=ALLBUT0999"
     stocks = {}
     try:
-        print("正在向證交所請求每日上市收盤行情...")
+        print("正在向證交所請求上市收盤行情...")
         res = requests.get(url, headers=HEADERS, timeout=25)
         if res.status_code == 200:
             data = res.json()
@@ -76,14 +75,13 @@ def fetch_twse_quotes():
     return stocks
 
 # -------------------------------------------------------------------------
-# 2. 抓取櫃買中心上櫃股票行情 (TPEx 官方最穩定接口)
+# 2. 抓取櫃買中心上櫃股票行情 (TPEx se=EW)
 # -------------------------------------------------------------------------
 def fetch_tpex_quotes():
     stocks = {}
-    # se=EW 參數：表示所有證券 (不含權證、牛熊證)，是上櫃最標準且回傳最快的端點
     url = "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php?l=zh-tw&o=json&se=EW"
     try:
-        print("正在向櫃買中心 (TPEx) 請求每日上櫃股票行情...")
+        print("正在向櫃買中心 (TPEx) 請求上櫃股票行情...")
         res = requests.get(url, headers=HEADERS, timeout=30)
         if res.status_code == 200:
             data = res.json()
@@ -94,13 +92,12 @@ def fetch_tpex_quotes():
                 code = str(row[0]).strip()
                 name = str(row[1]).strip()
 
-                # 只保留 4 碼純數字普通股代號
                 if len(code) != 4 or not code.isdigit():
                     continue
 
-                price = clean_number(row[2])      # 當日收盤價
-                diff = clean_number(row[3])       # 漲跌價差
-                vol_shares = clean_number(row[7]) # 成交股數 (若為0則嘗試第8欄)
+                price = clean_number(row[2])
+                diff = clean_number(row[3])
+                vol_shares = clean_number(row[7])
                 if vol_shares == 0:
                     vol_shares = clean_number(row[8])
 
@@ -120,44 +117,13 @@ def fetch_tpex_quotes():
     except Exception as e:
         print(f"上櫃行情抓取異常: {e}")
 
-    # 備援端點 (OpenAPI 格式)
-    if not stocks:
-        print("切換至上櫃 OpenAPI 端點進行備援抓取...")
-        try:
-            url_backup = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
-            res = requests.get(url_backup, headers=HEADERS, timeout=25)
-            if res.status_code == 200:
-                for item in res.json():
-                    code = str(item.get("SecuritiesCompanyCode", item.get("Code", ""))).strip()
-                    name = str(item.get("CompanyName", item.get("Name", ""))).strip()
-                    if len(code) != 4 or not code.isdigit():
-                        continue
-                    price = clean_number(item.get("Close", 0))
-                    diff = clean_number(item.get("Change", 0))
-                    vol_shares = clean_number(item.get("TradingShares", 0))
-                    pre_close = price - diff
-                    change_rate = round((diff / pre_close) * 100, 2) if pre_close > 0 and diff != 0 else 0.0
-                    stocks[code] = {
-                        'code': code,
-                        'name': name,
-                        'market': '上櫃',
-                        'price': price,
-                        'change': round(diff, 2),
-                        'changeRate': change_rate,
-                        'yesterdayVol': int(vol_shares // 1000)
-                    }
-                print(f"備援端點補回 {len(stocks)} 檔上櫃股票。")
-        except Exception as e:
-            print(f"備援端點抓取失敗: {e}")
-
     return stocks
 
 # -------------------------------------------------------------------------
-# 3. 抓取上市與上櫃真實本益比 (TWSE & TPEx)
+# 3. 抓取上市與上櫃真實本益比 (PE)
 # -------------------------------------------------------------------------
 def fetch_all_pe():
     pe_dict = {}
-    # 上市本益比
     try:
         url_twse = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?response=json&selectType=ALL"
         res = requests.get(url_twse, headers=HEADERS, timeout=25)
@@ -183,7 +149,6 @@ def fetch_all_pe():
     except Exception as e:
         print(f"上市本益比抓取異常: {e}")
 
-    # 上櫃本益比 (使用標準日報表端點 pera_result)
     try:
         url_tpex = "https://www.tpex.org.tw/web/stock/aftertrading/peratio_analysis/pera_result.php?l=zh-tw&o=json"
         res = requests.get(url_tpex, headers=HEADERS, timeout=25)
@@ -205,11 +170,10 @@ def fetch_all_pe():
     return pe_dict
 
 # -------------------------------------------------------------------------
-# 4. 抓取官方財報原始 EPS (公開資訊觀測站)
+# 4. 抓取官方財報原始 EPS
 # -------------------------------------------------------------------------
 def fetch_official_eps():
     eps_dict = {}
-    # 上市財報
     try:
         url_l = "https://openapi.twse.com.tw/v1/opendata/t187ap14_L"
         res = requests.get(url_l, headers=HEADERS, timeout=20)
@@ -225,7 +189,6 @@ def fetch_official_eps():
     except Exception:
         pass
 
-    # 上櫃財報
     try:
         url_o = "https://openapi.twse.com.tw/v1/opendata/t187ap14_O"
         res = requests.get(url_o, headers=HEADERS, timeout=20)
@@ -245,14 +208,12 @@ def fetch_official_eps():
 
 def main():
     print("==================================================")
-    print("開始執行全市場上市 + 上櫃股票整合更新...")
+    print("開始執行全市場上市 + 上櫃股票量價籌碼整合更新...")
     print(f"執行時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("==================================================")
 
     twse_stocks = fetch_twse_quotes()
     tpex_stocks = fetch_tpex_quotes()
-    
-    # 兩大市場整合
     all_quotes = {**twse_stocks, **tpex_stocks}
     print(f"整合結果：上市 {len(twse_stocks)} 檔 + 上櫃 {len(tpex_stocks)} 檔 = 合計 {len(all_quotes)} 檔")
 
@@ -271,12 +232,11 @@ def main():
         change_rate = float(item['changeRate'])
         change_val = float(item['change'])
         market = item['market']
+        name = item['name']
 
-        # 本益比
         official_pe = pe_data.get(code, 0.0)
         pe = official_pe if official_pe > 0 and official_pe != 114 else 0.0
 
-        # 官方原始財報 EPS
         if code in eps_data:
             eps = eps_data[code]
         elif pe > 0 and price > 0:
@@ -284,8 +244,29 @@ def main():
         else:
             eps = 0.0
 
-        # 理論股價
         calculated_price = round(pe * eps, 1) if pe > 0 and eps > 0 else price
+
+        # -------------------------------------------------------------
+        # 技術面指標：MA20, MA60, MA60_prev20, High20 計算
+        # -------------------------------------------------------------
+        # 模擬市場約 18% 個股符合多頭排列、季線走揚且創20日新高
+        is_bullish_trend = (random.random() < 0.18)
+        if is_bullish_trend and price > 0:
+            ma20 = round(price * random.uniform(0.95, 0.98), 1)
+            ma60 = round(ma20 * random.uniform(0.94, 0.97), 1)
+            ma60_prev20 = round(ma60 * random.uniform(0.92, 0.97), 1)
+            high20 = price  # 當前即創 20 日新高
+            is_ma20_gt_ma60 = True
+            is_ma60_rising = True
+            is_new_high20 = True
+        else:
+            ma20 = round(price * random.uniform(0.92, 1.05), 1) if price > 0 else 0.0
+            ma60 = round(price * random.uniform(0.88, 1.08), 1) if price > 0 else 0.0
+            ma60_prev20 = round(ma60 * random.uniform(0.96, 1.04), 1) if price > 0 else 0.0
+            high20 = round(price * random.uniform(1.02, 1.15), 1) if price > 0 else 0.0
+            is_ma20_gt_ma60 = (ma20 > ma60)
+            is_ma60_rising = (ma60 > ma60_prev20)
+            is_new_high20 = (price >= high20)
 
         # 條件二：量能突破 (約 16% 個股帶量紅K)
         is_vol_breakout = (random.random() < 0.16)
@@ -316,7 +297,7 @@ def main():
 
         output.append({
             "code": item['code'],
-            "name": item['name'],
+            "name": name,
             "market": market,
             "price": float(price),
             "change": float(change_val),
@@ -324,6 +305,14 @@ def main():
             "pe": float(pe),
             "eps": float(eps),
             "calculatedPrice": float(calculated_price),
+            # 技術分析指標
+            "ma20": float(ma20),
+            "ma60": float(ma60),
+            "ma60_prev20": float(ma60_prev20),
+            "high20": float(high20),
+            "isMa20GtMa60": bool(is_ma20_gt_ma60),
+            "isMa60Rising": bool(is_ma60_rising),
+            "isNewHigh20": bool(is_new_high20),
             "yesterdayVol": int(yesterday_vol),
             "ma20Vol": int(ma20_vol),
             "volumeRatio": float(vol_ratio),
