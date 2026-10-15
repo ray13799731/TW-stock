@@ -27,7 +27,7 @@
             <h1 class="text-xl font-bold tracking-tight text-white">台股全市場量價籌碼與價值估值系統</h1>
             <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">上市+上櫃 1,800+ 檔</span>
           </div>
-          <p class="text-xs text-slate-400">主力投信鎖碼・帶量紅K起漲・均線多頭(價>MA20>MA60)月線上揚創20日高・近5年PE區間</p>
+          <p class="text-xs text-slate-400">主力土洋雙買鎖碼・帶量紅K起漲・均線多頭(價>MA20>MA60)月線上揚創20日高・近5年PE區間</p>
         </div>
       </div>
 
@@ -48,17 +48,17 @@
 
     <!-- 策略控制看板 (4顆切換按鈕 + 搜尋欄位) -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-      <!-- 條件一：主力籌碼集中鎖定 (預設啟用) -->
+      <!-- 條件一：主力籌碼集中鎖定 (升級土洋合拍) -->
       <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-2.5">
         <div>
           <span class="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">條件一</span>
-          <h3 class="font-bold text-white text-sm mt-0.5">主力籌碼深度鎖碼</h3>
-          <p class="text-[11px] text-slate-400 mt-0.5">投信連買 &ge; 3日、大戶連增、家數差負值</p>
+          <h3 class="font-bold text-white text-sm mt-0.5">主力土洋雙買鎖碼</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">投信連買&ge;3日、外資+投信近3日累買>0、大戶增、家數差負值</p>
         </div>
         <button id="btn-filter-chips" onclick="toggleFilter('chips')" 
                 class="w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-600/20">
           <i class="fa-solid fa-check"></i>
-          籌碼集中鎖定 (已啟用)
+          土洋雙買鎖碼 (已啟用)
         </button>
       </div>
 
@@ -144,6 +144,7 @@
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-white text-indigo-300 font-semibold" onclick="sortBy('foreignNet3d')">土洋近3日買超 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('trustStreak')">投信連買 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('bigHolderStreak')">大戶連增 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('brokerDiff')">家數差 <i class="fa-solid fa-sort ml-1"></i></th>
@@ -177,7 +178,7 @@
 
     // 4 個篩選條件預設全部啟用
     const filters = {
-      chips: true,
+      chips: true, // 條件一：主力土洋雙買鎖碼
       vol: true,
       tech: true,  // 收盤價>MA20>MA60 且 MA20>MA20_20日前 且 創20日高
       traps: true
@@ -218,7 +219,11 @@
         item.eps = parseFloat(item.eps) || 0.0;
         item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
 
-        // 5 年 PE 區間欄位
+        // 法人近3日累計買賣超
+        item.foreignNet3d = parseInt(item.foreignNet3d) || 0;
+        item.trustNet3d = parseInt(item.trustNet3d) || 0;
+
+        // 5 年 PE 區間
         item.peMin5y = parseFloat(item.peMin5y) || (item.pe > 0 ? parseFloat((item.pe * 0.7).toFixed(1)) : 0.0);
         item.peMax5y = parseFloat(item.peMax5y) || (item.pe > 0 ? parseFloat((item.pe * 1.4).toFixed(1)) : 0.0);
         item.peAvg5y = parseFloat(item.peAvg5y) || parseFloat(((item.peMin5y + item.peMax5y) / 2).toFixed(1));
@@ -253,13 +258,18 @@
           if (query.length >= 4 && matchCode) return true;
         }
 
-        // 條件一：主力籌碼集中鎖定
+        // 【條件一：主力土洋雙買鎖碼】
+        // 1. 投信連買 >= 3 日
+        // 2. 近 3 日外資累積買超 > 0 且 投信累積買超 > 0 (土洋合拍)
+        // 3. 千張大戶連增 >= 2 週
+        // 4. 買賣家數差 < 0
         if (filters.chips) {
-          const passTrust = (parseInt(stock.trustStreak) || 0) >= 3;
+          const passTrustStreak = (parseInt(stock.trustStreak) || 0) >= 3;
+          const passDualInstitutional = (parseInt(stock.foreignNet3d) || 0) > 0 && (parseInt(stock.trustNet3d) || 0) > 0;
           const passBigHolder = (parseInt(stock.bigHolderStreak) || 0) >= 2;
           const passBrokerDiff = (parseInt(stock.brokerDiff) || 0) < 0;
 
-          if (!(passTrust && passBigHolder && passBrokerDiff)) {
+          if (!(passTrustStreak && passDualInstitutional && passBigHolder && passBrokerDiff)) {
             return false;
           }
         }
@@ -278,10 +288,7 @@
           }
         }
 
-        // 條件三：技術面強勢多頭
-        // 1. 均線多頭排列：收盤價 > MA20 > MA60
-        // 2. MA20 高於 20 個交易日前的 MA20
-        // 3. 收盤價創 20 日新高
+        // 條件三：技術面強勢多頭 (收盤價 > MA20 > MA60 且 MA20 > MA20_20日前 且 創20日高)
         if (filters.tech) {
           const cond1 = stock.isPriceGtMa20GtMa60 || (stock.price > stock.ma20 && stock.ma20 > stock.ma60);
           const cond2 = stock.isMa20Rising || (stock.ma20 > stock.ma20_prev20);
@@ -334,7 +341,7 @@
       filters[type] = !filters[type];
       const btn = document.getElementById(`btn-filter-${type}`);
       const configs = {
-        chips: { active: 'bg-indigo-600 border-indigo-500 shadow-indigo-600/20 text-white', label: '籌碼集中鎖定' },
+        chips: { active: 'bg-indigo-600 border-indigo-500 shadow-indigo-600/20 text-white', label: '土洋雙買鎖碼' },
         vol: { active: 'bg-amber-600 border-amber-500 shadow-amber-600/20 text-white', label: '帶量收紅突破' },
         tech: { active: 'bg-cyan-600 border-cyan-500 shadow-cyan-600/20 text-white', label: '均線多頭創高' },
         traps: { active: 'bg-rose-600 border-rose-500 shadow-rose-600/20 text-white', label: '防踩雷濾網' }
@@ -358,7 +365,7 @@
       filters.traps = false;
       ['chips', 'vol', 'tech', 'traps'].forEach(type => {
         const btn = document.getElementById(`btn-filter-${type}`);
-        const labels = { chips: '籌碼集中鎖定', vol: '帶量收紅突破', tech: '均線多頭創高', traps: '防踩雷濾網' };
+        const labels = { chips: '土洋雙買鎖碼', vol: '帶量收紅突破', tech: '均線多頭創高', traps: '防踩雷濾網' };
         btn.className = "w-full py-2 px-2.5 rounded-xl font-medium text-xs transition flex items-center justify-center gap-1.5 border bg-slate-800 hover:bg-slate-750 text-slate-300 border-slate-700";
         btn.innerHTML = `<i class="fa-solid fa-power-off"></i> ${labels[type]} (未啟用)`;
       });
@@ -371,7 +378,7 @@
       const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
         document.getElementById('page-info').innerText = "0 筆";
         return;
       }
@@ -391,7 +398,7 @@
           ? `<span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-sans">上市</span>`
           : `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-sans">上櫃</span>`;
 
-        // 技術面判斷：收盤價 > MA20 > MA60 且 MA20 > MA20_20日前 且 創20日高
+        // 技術面判斷
         const cond1 = (item.price > item.ma20 && item.ma20 > item.ma60);
         const cond2 = item.ma20 > item.ma20_prev20;
         const cond3 = item.price >= item.high20;
@@ -404,6 +411,12 @@
         } else {
           techBadges = `<span class="text-[10px] text-slate-500 font-sans">整理型態</span>`;
         }
+
+        // 土洋買超標示
+        const isDualBuy = item.foreignNet3d > 0 && item.trustNet3d > 0;
+        const dualBadge = isDualBuy
+          ? `<div class="text-[11px]"><span class="text-rose-400 font-bold">外+${item.foreignNet3d}</span> / <span class="text-indigo-400 font-bold">投+${item.trustNet3d}</span> <span class="text-[9px] bg-rose-950 text-rose-300 border border-rose-800 px-1 py-0.2 rounded ml-0.5">合拍</span></div>`
+          : `<div class="text-[11px] text-slate-400">外${item.foreignNet3d > 0 ? '+' : ''}${item.foreignNet3d} / 投${item.trustNet3d > 0 ? '+' : ''}${item.trustNet3d}</div>`;
 
         // 5 年 PE 區間
         let peRangeHtml = '';
@@ -469,6 +482,9 @@
               </span>
             </td>
             <td class="py-3 px-3 text-slate-300">${item.yesterdayVol.toLocaleString()}</td>
+            <td class="py-3 px-3">
+              ${dualBadge}
+            </td>
             <td class="py-3 px-3 ${item.trustStreak >= 3 ? 'text-rose-400 font-bold' : 'text-slate-400'}">+${item.trustStreak} 日</td>
             <td class="py-3 px-3 text-indigo-300">${item.bigHolderStreak} 週</td>
             <td class="py-3 px-3 ${item.brokerDiff < 0 ? 'text-emerald-400 font-bold' : 'text-slate-400'}">${item.brokerDiff} 家</td>
@@ -493,15 +509,15 @@
 
     function exportCSV() {
       if (filteredData.length === 0) return alert("無資料可匯出！");
-      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,MA20,MA60,當前PE,近5年最低PE,近5年最高PE,PE百分位階,官方財報EPS,計算股價,量比,昨日成交量,投信連買日數,大戶連增週數,買賣家數差\n";
+      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,MA20,MA60,當前PE,近5年最低PE,近5年最高PE,PE百分位階,官方財報EPS,計算股價,量比,昨日成交量,外資近3日累買,投信近3日累買,投信連買日數,大戶連增週數,買賣家數差\n";
       filteredData.forEach(s => {
-        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.ma20},${s.ma60},${s.pe},${s.peMin5y},${s.peMax5y},${s.pePercentile}%,${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
+        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.ma20},${s.ma60},${s.pe},${s.peMin5y},${s.peMax5y},${s.pePercentile}%,${s.eps},${s.calculatedPrice},${s.volumeRatio},${s.yesterdayVol},${s.foreignNet3d},${s.trustNet3d},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
       });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `台股技術強勢突破與5年PE位階清單_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `台股土洋雙買多因子清單_${new Date().toISOString().slice(0, 10)}.csv`;
       link.click();
     }
 
@@ -533,6 +549,8 @@
           yesterdayVol: 2500,
           ma20Vol: 1200,
           volumeRatio: 2.08,
+          foreignNet3d: 850,
+          trustNet3d: 420,
           trustStreak: 4,
           bigHolderStreak: 3,
           retailStreak: 3,
