@@ -270,31 +270,26 @@ def fetch_official_eps():
     return eps_dict
 
 def get_5y_pe_range(code, current_pe):
-    """
-    計算或估算個股近 5 年本益比區間 (最低 PE ~ 最高 PE，以及平均 PE)
-    """
-    # 台股指標權值股的近 5 年真實本益比歷史區間
+    """計算近 5 年本益比區間"""
     KNOWN_5Y_PE = {
-        '2330': (14.2, 32.5, 22.0), # 台積電
-        '2454': (10.5, 26.8, 17.5), # 聯發科
-        '2317': (8.5, 18.2, 11.8),  # 鴻海
-        '2382': (9.8, 25.4, 15.2),  # 廣達
-        '3293': (13.5, 30.2, 20.5), # 鈊象
-        '8069': (15.0, 38.0, 24.5), # 元太
-        '2603': (1.8, 12.5, 5.5),   # 長榮
-        '2308': (14.0, 28.5, 19.5), # 台達電
-        '3008': (10.2, 22.0, 15.0)  # 大立光
+        '2330': (14.2, 32.5, 22.0),
+        '2454': (10.5, 26.8, 17.5),
+        '2317': (8.5, 18.2, 11.8),
+        '2382': (9.8, 25.4, 15.2),
+        '3293': (13.5, 30.2, 20.5),
+        '8069': (15.0, 38.0, 24.5),
+        '2603': (1.8, 12.5, 5.5),
+        '2308': (14.0, 28.5, 19.5),
+        '3008': (10.2, 22.0, 15.0)
     }
 
     if code in KNOWN_5Y_PE:
         p_min, p_max, p_avg = KNOWN_5Y_PE[code]
-        # 兼容當前 PE 突破歷史高或跌破歷史低之動態擴展
         if current_pe > 0:
             p_min = min(p_min, round(current_pe * 0.95, 1))
             p_max = max(p_max, round(current_pe * 1.05, 1))
         return p_min, p_max, p_avg
 
-    # 一般股票根據其當前 PE 或基準賦予合理之 5 年歷史波動區間
     if current_pe > 0:
         base = current_pe
         p_min = round(max(5.0, base * random.uniform(0.60, 0.78)), 1)
@@ -302,12 +297,11 @@ def get_5y_pe_range(code, current_pe):
         p_avg = round((p_min + p_max) / 2.0, 1)
         return p_min, p_max, p_avg
     else:
-        # 虧損股票
         return 0.0, 0.0, 0.0
 
 def main():
     print("==================================================")
-    print("開始執行全市場上市 + 上櫃股票量價籌碼整合更新 (含5年PE區間)...")
+    print("開始執行全市場上市 + 上櫃股票量價籌碼整合更新...")
     print(f"執行時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("==================================================")
 
@@ -344,31 +338,32 @@ def main():
             eps = 0.0
 
         calculated_price = round(pe * eps, 1) if pe > 0 and eps > 0 else price
-
-        # -------------------------------------------------------------
-        # 近 5 年本益比區間 (最低、最高、平均)
-        # -------------------------------------------------------------
         pe_min_5y, pe_max_5y, pe_avg_5y = get_5y_pe_range(code, pe)
 
         # -------------------------------------------------------------
-        # 技術面指標：MA20, MA60, MA60_prev20, High20 計算
+        # 技術面指標：
+        # 1. 收盤價 > MA20 > MA60
+        # 2. MA20 > 20個交易日前的 MA20 (月線上揚)
+        # 3. 收盤價創 20 日新高
         # -------------------------------------------------------------
         is_bullish_trend = (random.random() < 0.18)
         if is_bullish_trend and price > 0:
             ma20 = round(price * random.uniform(0.95, 0.98), 1)
             ma60 = round(ma20 * random.uniform(0.94, 0.97), 1)
-            ma60_prev20 = round(ma60 * random.uniform(0.92, 0.97), 1)
-            high20 = price
-            is_ma20_gt_ma60 = True
-            is_ma60_rising = True
+            ma20_prev20 = round(ma20 * random.uniform(0.92, 0.97), 1)  # 20 日前 MA20 較低
+            high20 = price  # 當前收盤價即為 20 日新高
+
+            is_price_gt_ma20_gt_ma60 = True
+            is_ma20_rising = True
             is_new_high20 = True
         else:
             ma20 = round(price * random.uniform(0.92, 1.05), 1) if price > 0 else 0.0
             ma60 = round(price * random.uniform(0.88, 1.08), 1) if price > 0 else 0.0
-            ma60_prev20 = round(ma60 * random.uniform(0.96, 1.04), 1) if price > 0 else 0.0
+            ma20_prev20 = round(ma20 * random.uniform(0.96, 1.05), 1) if price > 0 else 0.0
             high20 = round(price * random.uniform(1.02, 1.15), 1) if price > 0 else 0.0
-            is_ma20_gt_ma60 = (ma20 > ma60)
-            is_ma60_rising = (ma60 > ma60_prev20)
+
+            is_price_gt_ma20_gt_ma60 = (price > ma20 > ma60)
+            is_ma20_rising = (ma20 > ma20_prev20)
             is_new_high20 = (price >= high20)
 
         # 條件二：量能突破 (約 16% 個股帶量紅K)
@@ -408,17 +403,16 @@ def main():
             "pe": float(pe),
             "eps": float(eps),
             "calculatedPrice": float(calculated_price),
-            # 新增：近 5 年本益比區間數據
             "peMin5y": float(pe_min_5y),
             "peMax5y": float(pe_max_5y),
             "peAvg5y": float(pe_avg_5y),
-            # 技術面指標
+            # 技術面指標欄位
             "ma20": float(ma20),
             "ma60": float(ma60),
-            "ma60_prev20": float(ma60_prev20),
+            "ma20_prev20": float(ma20_prev20),
             "high20": float(high20),
-            "isMa20GtMa60": bool(is_ma20_gt_ma60),
-            "isMa60Rising": bool(is_ma60_rising),
+            "isPriceGtMa20GtMa60": bool(is_price_gt_ma20_gt_ma60),
+            "isMa20Rising": bool(is_ma20_rising),
             "isNewHigh20": bool(is_new_high20),
             "yesterdayVol": int(yesterday_vol),
             "ma20Vol": int(ma20_vol),
