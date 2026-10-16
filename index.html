@@ -27,7 +27,7 @@
             <h1 class="text-xl font-bold tracking-tight text-white">台股全市場量價籌碼與價值估值系統</h1>
             <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-mono">上市+上櫃 1,800+ 檔</span>
           </div>
-          <p class="text-xs text-slate-400">主力土洋雙買鎖碼・帶量紅K起漲・均線多頭創高・近4季EPS獲利與年增成長認證</p>
+          <p class="text-xs text-slate-400">主力土洋雙買鎖碼・帶量紅K起漲・官方財報EPS・計算股價估值・近4季EPS獲利成長認證</p>
         </div>
       </div>
 
@@ -129,7 +129,7 @@
       </div>
     </div>
 
-    <!-- 表格區塊 -->
+    <!-- 表格區塊 (已移除技術型態欄位，完整還原官方EPS與計算股價) -->
     <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
@@ -137,10 +137,11 @@
             <tr>
               <th class="py-3 px-4 cursor-pointer hover:text-white" onclick="sortBy('code')">股票代號 / 名稱 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('price')">收盤價 (漲跌) <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 text-cyan-400 font-semibold cursor-pointer hover:text-cyan-300" onclick="sortBy('ma20')">技術型態 (均線多頭/新高) <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">當前 PE <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('eps')">官方財報 EPS <i class="fa-solid fa-sort ml-1"></i></th>
+              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 (PE*EPS) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-emerald-400 font-semibold cursor-pointer hover:text-emerald-300" onclick="sortBy('eps4Q')">近4季累計EPS > 0 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-rose-400 font-semibold cursor-pointer hover:text-rose-300" onclick="sortBy('epsGrowthYoY')">近4季EPS年增 > 0 <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('pe')">當前 PE <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-amber-400 font-semibold cursor-pointer hover:text-amber-300" onclick="sortBy('pePercentile')">近 5 年 PE 區間 (低~高) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
@@ -219,7 +220,7 @@
         item.eps = parseFloat(item.eps) || 0.0;
         item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
 
-        // 籌碼指標強制純數值化，杜絕 NaN / undefined 錯誤
+        // 籌碼指標強制數值化
         item.trustStreak = Number(item.trustStreak) || 0;
         item.foreignNet3d = Number(item.foreignNet3d) || 0;
         item.trustNet3d = Number(item.trustNet3d) || 0;
@@ -244,7 +245,7 @@
           item.pePercentile = 50;
         }
 
-        // 技術分析欄位
+        // 技術分析欄位 (作為後端判定條件三使用)
         item.ma20 = parseFloat(item.ma20) || parseFloat((item.price * 0.98).toFixed(1));
         item.ma60 = parseFloat(item.ma60) || parseFloat((item.price * 0.95).toFixed(1));
         item.ma20_prev20 = parseFloat(item.ma20_prev20) || parseFloat((item.ma20 * 0.96).toFixed(1));
@@ -269,7 +270,7 @@
 
         // 【條件一：主力土洋雙買鎖碼】
         // 1. 投信連買 >= 3 日
-        // 2. 近 3 日外資累積買超 > 0 且 投信累積買超 > 0 (土洋合拍)
+        // 2. 近 3 日外資累計買超 > 0 且 投信累計買超 > 0 (土洋合拍)
         // 3. 千張大戶連增 >= 2 週
         // 4. 買賣家數差 < 0
         if (filters.chips) {
@@ -297,7 +298,7 @@
           }
         }
 
-        // 條件三：技術面強勢多頭
+        // 條件三：技術面強勢多頭 (收盤價 > MA20 > MA60 且 MA20 > MA20_20日前 且 創20日高)
         if (filters.tech) {
           const cond1 = stock.isPriceGtMa20GtMa60 || (stock.price > stock.ma20 && stock.ma20 > stock.ma60);
           const cond2 = stock.isMa20Rising || (stock.ma20 > stock.ma20_prev20);
@@ -387,7 +388,7 @@
       const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="15" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
         document.getElementById('page-info').innerText = "0 筆";
         return;
       }
@@ -398,23 +399,15 @@
         const changeColor = isUp ? 'text-rose-400 font-semibold' : (isDown ? 'text-emerald-400 font-semibold' : 'text-slate-400');
         const changeSign = isUp ? '+' : '';
 
+        // 計算股價低估標籤
+        const isUndervalued = item.price > 0 && item.calculatedPrice > 0 && item.price < item.calculatedPrice;
+        const valuationBadge = isUndervalued
+          ? `<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1 py-0.2 rounded ml-1 font-sans">低估</span>`
+          : '';
+
         const marketBadge = item.market === '上市'
           ? `<span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-1 py-0.2 rounded font-sans">上市</span>`
           : `<span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-1 py-0.2 rounded font-sans">上櫃</span>`;
-
-        // 技術面判斷
-        const cond1 = (item.price > item.ma20 && item.ma20 > item.ma60);
-        const cond2 = item.ma20 > item.ma20_prev20;
-        const cond3 = item.price >= item.high20;
-
-        let techBadges = '';
-        if (cond1 && cond2 && cond3) {
-          techBadges = `<span class="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-bold font-sans">價>20>60</span> <span class="text-[10px] bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-800 px-1.5 py-0.5 rounded font-bold font-sans">月線上揚・創高</span>`;
-        } else if (cond1) {
-          techBadges = `<span class="text-[10px] bg-cyan-950/60 text-cyan-400 border border-cyan-900 px-1.5 py-0.5 rounded font-sans">多頭排列</span>`;
-        } else {
-          techBadges = `<span class="text-[10px] text-slate-500 font-sans">整理型態</span>`;
-        }
 
         // 1. 近4季累計EPS是否大於0 徽章
         const eps4QBadge = item.eps4Q > 0
@@ -429,10 +422,10 @@
         // 土洋買超標示
         const isDualBuy = item.foreignNet3d > 0 && item.trustNet3d > 0;
         const dualBadge = isDualBuy
-          ? `<div class="text-[11px]"><span class="text-rose-400 font-bold">外+${item.foreignNet3d}</span> / <span class="text-indigo-400 font-bold">投+${item.trustNet3d}</span> <span class="text-[9px] bg-rose-950 text-rose-300 border border-rose-800 px-1 py-0.2 rounded ml-0.5">合拍</span></div>`
+          ? `<div class="text-[11px]"><span class="text-rose-400 font-bold">外+${item.foreignNet3d}</span> / <span class="text-indigo-400 font-bold">投+${item.trustNet3d}</span> <span class="text-[9px] bg-rose-950 text-rose-300 border border-rose-800 px-1 py-0.2 rounded ml-0.5 font-sans">合拍</span></div>`
           : `<div class="text-[11px] text-slate-400">外${item.foreignNet3d > 0 ? '+' : ''}${item.foreignNet3d} / 投${item.trustNet3d > 0 ? '+' : ''}${item.trustNet3d}</div>`;
 
-        // 5 年 PE 區間
+        // 5 年 PE 區間與位階進度條
         let peRangeHtml = '';
         if (item.pe > 0 && item.peMax5y > 0) {
           let levelTag = '';
@@ -472,19 +465,21 @@
                 (${changeSign}${item.changeRate ? item.changeRate.toFixed(2) : '0.00'}%)
               </span>
             </td>
+            <td class="py-3 px-3 text-emerald-300 font-semibold">
+              ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500 font-normal">虧損</span>'}
+            </td>
+            <td class="py-3 px-3 text-slate-200">
+              ${item.eps !== 0 ? '$' + item.eps.toFixed(2) : '<span class="text-slate-500">-</span>'}
+            </td>
             <td class="py-3 px-3">
-              <div class="flex flex-wrap items-center gap-1">
-                ${techBadges}
-              </div>
+              <span class="text-amber-300 font-semibold">$${item.calculatedPrice.toFixed(1)}</span>
+              ${valuationBadge}
             </td>
             <td class="py-3 px-3">
               ${eps4QBadge}
             </td>
             <td class="py-3 px-3">
               ${epsGrowthBadge}
-            </td>
-            <td class="py-3 px-3 text-emerald-300 font-semibold">
-              ${item.pe > 0 ? item.pe.toFixed(1) + ' 倍' : '<span class="text-slate-500 font-normal">虧損</span>'}
             </td>
             <td class="py-3 px-3">
               ${peRangeHtml}
@@ -522,9 +517,9 @@
 
     function exportCSV() {
       if (filteredData.length === 0) return alert("無資料可匯出！");
-      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,MA20,MA60,近4季累計EPS,近4季EPS大於0,近4季EPS年增率(%),近4季年增大於0,當前PE,近5年最低PE,近5年最高PE,PE百分位階,量比,昨日成交量,外資近3日累買,投信近3日累買,投信連買日數,大戶連增週數,買賣家數差\n";
+      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,當前PE,官方財報EPS,計算股價,近4季累計EPS,近4季EPS大於0,近4季EPS年增率(%),近4季年增大於0,近5年最低PE,近5年最高PE,PE百分位階,量比,昨日成交量,外資近3日累買,投信近3日累買,投信連買日數,大戶連增週數,買賣家數差\n";
       filteredData.forEach(s => {
-        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.ma20},${s.ma60},${s.eps4Q},${s.isEps4QPositive?'是':'否'},${s.epsGrowthYoY}%,${s.isEpsGrowthPositive?'是':'否'},${s.pe},${s.peMin5y},${s.peMax5y},${s.pePercentile}%,${s.volumeRatio},${s.yesterdayVol},${s.foreignNet3d},${s.trustNet3d},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
+        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.pe},${s.eps},${s.calculatedPrice},${s.eps4Q},${s.isEps4QPositive?'是':'否'},${s.epsGrowthYoY}%,${s.isEpsGrowthPositive?'是':'否'},${s.peMin5y},${s.peMax5y},${s.pePercentile}%,${s.volumeRatio},${s.yesterdayVol},${s.foreignNet3d},${s.trustNet3d},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
       });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -553,17 +548,17 @@
           isPriceGtMa20GtMa60: true,
           isMa20Rising: true,
           isNewHigh20: true,
+          pe: 15.0,
+          eps: 3.0,
+          calculatedPrice: 45.0,
           eps4Q: 3.25,
           isEps4QPositive: true,
           epsGrowthYoY: 18.5,
           isEpsGrowthPositive: true,
-          pe: 15.0,
           peMin5y: 11.2,
           peMax5y: 22.5,
           peAvg5y: 16.8,
           pePercentile: 34,
-          eps: 3.0,
-          calculatedPrice: 45.0,
           yesterdayVol: 2500,
           ma20Vol: 1200,
           volumeRatio: 2.08,
