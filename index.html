@@ -129,7 +129,7 @@
       </div>
     </div>
 
-    <!-- 表格區塊 (已移除技術型態與風控狀態欄位) -->
+    <!-- 表格區塊 (已移除 5 年 PE 區間、技術型態與風控狀態欄位) -->
     <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
@@ -142,7 +142,6 @@
               <th class="py-3 px-3 cursor-pointer hover:text-emerald-300 text-emerald-400" onclick="sortBy('calculatedPrice')">計算股價 (PE*EPS) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-emerald-400 font-semibold cursor-pointer hover:text-emerald-300" onclick="sortBy('eps4Q')">近4季累計EPS > 0 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 text-rose-400 font-semibold cursor-pointer hover:text-rose-300" onclick="sortBy('epsGrowthYoY')">近4季EPS年增 > 0 <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 text-amber-400 font-semibold cursor-pointer hover:text-amber-300" onclick="sortBy('pePercentile')">近 5 年 PE 區間 (低~高) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('volumeRatio')">量比 (昨日/MA20) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('yesterdayVol')">昨日量 (張) <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white text-indigo-300 font-semibold" onclick="sortBy('foreignNet3d')">土洋近3日買超 <i class="fa-solid fa-sort ml-1"></i></th>
@@ -219,7 +218,7 @@
         item.eps = parseFloat(item.eps) || 0.0;
         item.calculatedPrice = parseFloat((item.pe * item.eps).toFixed(1));
 
-        // 籌碼指標強制數值化
+        // 籌碼指標強制純數值化
         item.trustStreak = Number(item.trustStreak) || 0;
         item.foreignNet3d = Number(item.foreignNet3d) || 0;
         item.trustNet3d = Number(item.trustNet3d) || 0;
@@ -231,18 +230,6 @@
         item.isEps4QPositive = (item.isEps4QPositive !== undefined) ? Boolean(item.isEps4QPositive) : (item.eps4Q > 0);
         item.epsGrowthYoY = parseFloat(item.epsGrowthYoY) || (item.eps4Q > 0 ? 15.2 : -10.5);
         item.isEpsGrowthPositive = (item.isEpsGrowthPositive !== undefined) ? Boolean(item.isEpsGrowthPositive) : (item.epsGrowthYoY > 0);
-
-        // 5 年 PE 區間
-        item.peMin5y = parseFloat(item.peMin5y) || (item.pe > 0 ? parseFloat((item.pe * 0.7).toFixed(1)) : 0.0);
-        item.peMax5y = parseFloat(item.peMax5y) || (item.pe > 0 ? parseFloat((item.pe * 1.4).toFixed(1)) : 0.0);
-        item.peAvg5y = parseFloat(item.peAvg5y) || parseFloat(((item.peMin5y + item.peMax5y) / 2).toFixed(1));
-
-        if (item.pe > 0 && item.peMax5y > item.peMin5y) {
-          let pct = ((item.pe - item.peMin5y) / (item.peMax5y - item.peMin5y)) * 100;
-          item.pePercentile = Math.max(0, Math.min(100, Math.round(pct)));
-        } else {
-          item.pePercentile = 50;
-        }
 
         // 技術分析欄位 (後端判定條件三使用)
         item.ma20 = parseFloat(item.ma20) || parseFloat((item.price * 0.98).toFixed(1));
@@ -383,7 +370,7 @@
       const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
         document.getElementById('page-info').innerText = "0 筆";
         return;
       }
@@ -420,33 +407,6 @@
           ? `<div class="text-[11px]"><span class="text-rose-400 font-bold">外+${item.foreignNet3d}</span> / <span class="text-indigo-400 font-bold">投+${item.trustNet3d}</span> <span class="text-[9px] bg-rose-950 text-rose-300 border border-rose-800 px-1 py-0.2 rounded ml-0.5 font-sans">合拍</span></div>`
           : `<div class="text-[11px] text-slate-400">外${item.foreignNet3d > 0 ? '+' : ''}${item.foreignNet3d} / 投${item.trustNet3d > 0 ? '+' : ''}${item.trustNet3d}</div>`;
 
-        // 5 年 PE 區間與位階進度條
-        let peRangeHtml = '';
-        if (item.pe > 0 && item.peMax5y > 0) {
-          let levelTag = '';
-          if (item.pePercentile <= 30) {
-            levelTag = `<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1 py-0.2 rounded font-sans ml-1">便宜位階</span>`;
-          } else if (item.pePercentile >= 75) {
-            levelTag = `<span class="text-[10px] bg-rose-950 text-rose-400 border border-rose-800 px-1 py-0.2 rounded font-sans ml-1">偏高位階</span>`;
-          } else {
-            levelTag = `<span class="text-[10px] bg-slate-800 text-slate-400 border border-slate-700 px-1 py-0.2 rounded font-sans ml-1">合理位階</span>`;
-          }
-
-          peRangeHtml = `
-            <div class="flex flex-col gap-0.5">
-              <div class="flex items-center text-[11px]">
-                <span class="text-amber-300 font-bold">${item.peMin5y.toFixed(1)} ~ ${item.peMax5y.toFixed(1)} 倍</span>
-                ${levelTag}
-              </div>
-              <div class="w-24 bg-slate-800 h-1.5 rounded-full overflow-hidden mt-0.5 border border-slate-700">
-                <div class="bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-400 h-full rounded-full" style="width: ${item.pePercentile}%"></div>
-              </div>
-            </div>
-          `;
-        } else {
-          peRangeHtml = `<span class="text-slate-500 font-normal">不適用 (虧損)</span>`;
-        }
-
         return `
           <tr class="hover:bg-slate-900/90 transition border-b border-slate-800/40">
             <td class="py-3 px-4 font-sans font-bold text-white flex items-center gap-1.5">
@@ -475,9 +435,6 @@
             </td>
             <td class="py-3 px-3">
               ${epsGrowthBadge}
-            </td>
-            <td class="py-3 px-3">
-              ${peRangeHtml}
             </td>
             <td class="py-3 px-3">
               <span class="${item.volumeRatio >= 1.48 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-slate-400'} px-1.5 py-0.5 rounded font-bold">
@@ -509,9 +466,9 @@
 
     function exportCSV() {
       if (filteredData.length === 0) return alert("無資料可匯出！");
-      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,當前PE,官方財報EPS,計算股價,近4季累計EPS,近4季EPS大於0,近4季EPS年增率(%),近4季年增大於0,近5年最低PE,近5年最高PE,PE百分位階,量比,昨日成交量,外資近3日累買,投信近3日累買,投信連買日數,大戶連增週數,買賣家數差\n";
+      let csv = "市場,股票代號,股票名稱,收盤價,漲跌幅,當前PE,官方財報EPS,計算股價,近4季累計EPS,近4季EPS大於0,近4季EPS年增率(%),近4季年增大於0,量比,昨日成交量,外資近3日累買,投信近3日累買,投信連買日數,大戶連增週數,買賣家數差\n";
       filteredData.forEach(s => {
-        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.pe},${s.eps},${s.calculatedPrice},${s.eps4Q},${s.isEps4QPositive?'是':'否'},${s.epsGrowthYoY}%,${s.isEpsGrowthPositive?'是':'否'},${s.peMin5y},${s.peMax5y},${s.pePercentile}%,${s.volumeRatio},${s.yesterdayVol},${s.foreignNet3d},${s.trustNet3d},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
+        csv += `${s.market},${s.code},${s.name},${s.price},${s.changeRate}%,${s.pe},${s.eps},${s.calculatedPrice},${s.eps4Q},${s.isEps4QPositive?'是':'否'},${s.epsGrowthYoY}%,${s.isEpsGrowthPositive?'是':'否'},${s.volumeRatio},${s.yesterdayVol},${s.foreignNet3d},${s.trustNet3d},${s.trustStreak},${s.bigHolderStreak},${s.brokerDiff}\n`;
       });
       const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -547,10 +504,6 @@
           pe: 15.0,
           eps: 3.0,
           calculatedPrice: 45.0,
-          peMin5y: 11.2,
-          peMax5y: 22.5,
-          peAvg5y: 16.8,
-          pePercentile: 34,
           yesterdayVol: 2500,
           ma20Vol: 1200,
           volumeRatio: 2.08,
