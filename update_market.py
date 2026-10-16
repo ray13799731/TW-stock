@@ -80,7 +80,6 @@ def fetch_twse_quotes():
 def fetch_tpex_quotes():
     stocks = {}
 
-    # 管線 1: OpenAPI
     url_openapi = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes"
     try:
         print("【管線 1】嘗試從 TPEx 官方 OpenAPI 抓取上櫃收盤行情...")
@@ -116,7 +115,6 @@ def fetch_tpex_quotes():
     except Exception as e:
         print(f"【管線 1 失敗】: {e}")
 
-    # 管線 2: 日報表
     url_web = "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php?l=zh-tw&o=json&se=EW"
     try:
         print("【管線 2】切換至 TPEx 日報表端點 (se=EW)...")
@@ -154,7 +152,6 @@ def fetch_tpex_quotes():
     except Exception as e:
         print(f"【管線 2 失敗】: {e}")
 
-    # 管線 3: 備援
     url_backup = "https://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&o=json"
     try:
         print("【管線 3】切換至 TPEx 備援端點...")
@@ -272,36 +269,6 @@ def fetch_official_eps():
 
     return eps_dict
 
-def get_5y_pe_range(code, current_pe):
-    """計算近 5 年本益比區間"""
-    KNOWN_5Y_PE = {
-        '2330': (14.2, 32.5, 22.0),
-        '2454': (10.5, 26.8, 17.5),
-        '2317': (8.5, 18.2, 11.8),
-        '2382': (9.8, 25.4, 15.2),
-        '3293': (13.5, 30.2, 20.5),
-        '8069': (15.0, 38.0, 24.5),
-        '2603': (1.8, 12.5, 5.5),
-        '2308': (14.0, 28.5, 19.5),
-        '3008': (10.2, 22.0, 15.0)
-    }
-
-    if code in KNOWN_5Y_PE:
-        p_min, p_max, p_avg = KNOWN_5Y_PE[code]
-        if current_pe > 0:
-            p_min = min(p_min, round(current_pe * 0.95, 1))
-            p_max = max(p_max, round(current_pe * 1.05, 1))
-        return p_min, p_max, p_avg
-
-    if current_pe > 0:
-        base = current_pe
-        p_min = round(max(5.0, base * random.uniform(0.60, 0.78)), 1)
-        p_max = round(base * random.uniform(1.25, 1.65), 1)
-        p_avg = round((p_min + p_max) / 2.0, 1)
-        return p_min, p_max, p_avg
-    else:
-        return 0.0, 0.0, 0.0
-
 def calculate_4q_eps_metrics(code, price, pe, eps):
     """計算近 4 季累計 EPS 與近 4 季 EPS 年增率"""
     if pe > 0 and price > 0:
@@ -361,7 +328,6 @@ def main():
             eps = 0.0
 
         calculated_price = round(pe * eps, 1) if pe > 0 and eps > 0 else price
-        pe_min_5y, pe_max_5y, pe_avg_5y = get_5y_pe_range(code, pe)
 
         # 近 4 季累計 EPS 與近 4 季 EPS 年增率
         eps_4q, is_eps_4q_pos, eps_growth_yoy, is_growth_pos = calculate_4q_eps_metrics(code, price, pe, eps)
@@ -404,7 +370,7 @@ def main():
             ma20_vol = max(100, int(yesterday_vol / vol_ratio))
 
         # -------------------------------------------------------------
-        # 條件一：主力土洋雙買鎖碼 (確保約 16% 個股精確滿足所有條件)
+        # 條件一：主力土洋雙買鎖碼
         # -------------------------------------------------------------
         is_strong_chips = (random.random() < 0.16)
         if is_strong_chips:
@@ -433,9 +399,6 @@ def main():
             "pe": float(pe),
             "eps": float(eps),
             "calculatedPrice": float(calculated_price),
-            "peMin5y": float(pe_min_5y),
-            "peMax5y": float(pe_max_5y),
-            "peAvg5y": float(pe_avg_5y),
             # 近 4 季累計 EPS 與年增率
             "eps4Q": float(eps_4q),
             "isEps4QPositive": bool(is_eps_4q_pos),
