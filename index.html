@@ -129,7 +129,7 @@
       </div>
     </div>
 
-    <!-- 表格區塊 (已移除技術型態欄位，完整還原官方EPS與計算股價) -->
+    <!-- 表格區塊 (已移除技術型態與風控狀態欄位) -->
     <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
@@ -149,7 +149,6 @@
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('trustStreak')">投信連買 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('bigHolderStreak')">大戶連增 <i class="fa-solid fa-sort ml-1"></i></th>
               <th class="py-3 px-3 cursor-pointer hover:text-white" onclick="sortBy('brokerDiff')">家數差 <i class="fa-solid fa-sort ml-1"></i></th>
-              <th class="py-3 px-3 text-center">風控狀態</th>
             </tr>
           </thead>
           <tbody id="table-body" class="divide-y divide-slate-800/60 font-mono">
@@ -245,7 +244,7 @@
           item.pePercentile = 50;
         }
 
-        // 技術分析欄位 (作為後端判定條件三使用)
+        // 技術分析欄位 (後端判定條件三使用)
         item.ma20 = parseFloat(item.ma20) || parseFloat((item.price * 0.98).toFixed(1));
         item.ma60 = parseFloat(item.ma60) || parseFloat((item.price * 0.95).toFixed(1));
         item.ma20_prev20 = parseFloat(item.ma20_prev20) || parseFloat((item.ma20 * 0.96).toFixed(1));
@@ -269,10 +268,6 @@
         }
 
         // 【條件一：主力土洋雙買鎖碼】
-        // 1. 投信連買 >= 3 日
-        // 2. 近 3 日外資累計買超 > 0 且 投信累計買超 > 0 (土洋合拍)
-        // 3. 千張大戶連增 >= 2 週
-        // 4. 買賣家數差 < 0
         if (filters.chips) {
           const passTrustStreak = (stock.trustStreak >= 3);
           const passDualBuy = (stock.foreignNet3d > 0 && stock.trustNet3d > 0);
@@ -298,7 +293,7 @@
           }
         }
 
-        // 條件三：技術面強勢多頭 (收盤價 > MA20 > MA60 且 MA20 > MA20_20日前 且 創20日高)
+        // 條件三：技術面強勢多頭
         if (filters.tech) {
           const cond1 = stock.isPriceGtMa20GtMa60 || (stock.price > stock.ma20 && stock.ma20 > stock.ma60);
           const cond2 = stock.isMa20Rising || (stock.ma20 > stock.ma20_prev20);
@@ -388,7 +383,7 @@
       const pageData = filteredData.slice(startIdx, startIdx + pageSize);
 
       if (filteredData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="15" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="py-12 text-center text-slate-500">查無符合目前條件的股票。可點擊「重設」查看全市場列表。</td></tr>`;
         document.getElementById('page-info').innerText = "0 筆";
         return;
       }
@@ -496,9 +491,6 @@
             <td class="py-3 px-3 ${item.trustStreak >= 3 ? 'text-rose-400 font-bold' : 'text-slate-400'}">+${item.trustStreak} 日</td>
             <td class="py-3 px-3 text-indigo-300">${item.bigHolderStreak} 週</td>
             <td class="py-3 px-3 ${item.brokerDiff < 0 ? 'text-emerald-400 font-bold' : 'text-slate-400'}">${item.brokerDiff} 家</td>
-            <td class="py-3 px-3 text-center text-xs">
-              ${item.trapForeignSell ? '<span class="text-rose-400">外資壓盤</span>' : '<span class="text-slate-500">正常</span>'}
-            </td>
           </tr>
         `;
       }).join('');
@@ -548,13 +540,13 @@
           isPriceGtMa20GtMa60: true,
           isMa20Rising: true,
           isNewHigh20: true,
-          pe: 15.0,
-          eps: 3.0,
-          calculatedPrice: 45.0,
           eps4Q: 3.25,
           isEps4QPositive: true,
           epsGrowthYoY: 18.5,
           isEpsGrowthPositive: true,
+          pe: 15.0,
+          eps: 3.0,
+          calculatedPrice: 45.0,
           peMin5y: 11.2,
           peMax5y: 22.5,
           peAvg5y: 16.8,
